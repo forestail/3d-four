@@ -344,8 +344,15 @@
       </div>
       <div id="hudDetails">
         <div class="score">
-          <div class="player"><span class="piece-icon black"></span><span>あなた（黒）</span></div>
-          <div class="player"><span class="piece-icon white"></span><span>CPU（白）</span></div>
+          <div class="player"><span id="humanPieceIcon" class="piece-icon black"></span><span id="humanPieceLabel">あなた（黒・先手）</span></div>
+          <div class="player"><span id="cpuPieceIcon" class="piece-icon white"></span><span id="cpuPieceLabel">CPU（白・後手）</span></div>
+        </div>
+        <div class="difficulty-row">
+          <label for="playerOrderSelect">あなたの順番</label>
+          <select id="playerOrderSelect" aria-label="あなたの順番">
+            <option value="first" selected>先手（黒）</option>
+            <option value="second">後手（白）</option>
+          </select>
         </div>
         <div class="difficulty-row">
           <label for="difficultySelect">CPUの強さ</label>
@@ -353,6 +360,7 @@
             <option value="easy">弱い</option>
             <option value="normal" selected>普通</option>
             <option value="hard">強い</option>
+            <option value="strongest">最強</option>
           </select>
         </div>
         <div class="controls-row">
@@ -366,7 +374,7 @@
       <button id="confirmMoveBtn" class="confirm-btn" type="button" disabled>ここに置く</button>
     </section>
 
-    <div class="help">ドラッグ: 回転 / ホイール・ピンチ: ズーム<br>空いている交点をクリックして黒球を置く</div>
+    <div class="help">ドラッグ: 回転 / ホイール・ピンチ: ズーム<br>空いている交点をクリックしてあなたの球を置く</div>
     <div id="toast" class="toast"></div>
   </div>
 
@@ -388,6 +396,11 @@
     const turnDot = document.getElementById('turnDot');
     const restartBtn = document.getElementById('restartBtn');
     const resetViewBtn = document.getElementById('resetViewBtn');
+    const playerOrderSelect = document.getElementById('playerOrderSelect');
+    const humanPieceIcon = document.getElementById('humanPieceIcon');
+    const cpuPieceIcon = document.getElementById('cpuPieceIcon');
+    const humanPieceLabel = document.getElementById('humanPieceLabel');
+    const cpuPieceLabel = document.getElementById('cpuPieceLabel');
     const difficultySelect = document.getElementById('difficultySelect');
     const toast = document.getElementById('toast');
     const hud = document.getElementById('hud');
@@ -565,8 +578,10 @@
     let currentPlayer = HUMAN;
     let cpuTimer = null;
     let toastTimer = null;
+    let playerGoesFirst = localStorage.getItem('3d-four-player-order') !== 'second';
     let difficulty = localStorage.getItem('3d-four-difficulty') || 'normal';
-    if (!['easy', 'normal', 'hard'].includes(difficulty)) difficulty = 'normal';
+    if (!['easy', 'normal', 'hard', 'strongest'].includes(difficulty)) difficulty = 'normal';
+    playerOrderSelect.value = playerGoesFirst ? 'first' : 'second';
     difficultySelect.value = difficulty;
     const board = new Int8Array(CELL_COUNT);
     const pieceMeshes = new Array(CELL_COUNT).fill(null);
@@ -624,6 +639,26 @@
 
     function layerOf(index) {
       return xyzOf(index)[1];
+    }
+
+    function playerIsBlack(player) {
+      return player === HUMAN ? playerGoesFirst : !playerGoesFirst;
+    }
+
+    function playerStatusColor(player) {
+      return playerIsBlack(player) ? '#111827' : '#f4f7ff';
+    }
+
+    function setTurnStatus(player, text) {
+      setStatus(text, playerStatusColor(player));
+    }
+
+    function updatePlayerLabels() {
+      playerOrderSelect.value = playerGoesFirst ? 'first' : 'second';
+      humanPieceIcon.className = `piece-icon ${playerGoesFirst ? 'black' : 'white'}`;
+      cpuPieceIcon.className = `piece-icon ${playerGoesFirst ? 'white' : 'black'}`;
+      humanPieceLabel.textContent = playerGoesFirst ? 'あなた（黒・先手）' : 'あなた（白・後手）';
+      cpuPieceLabel.textContent = playerGoesFirst ? 'CPU（白・後手）' : 'CPU（黒・先手）';
     }
 
     function setHudCollapsed(collapsed) {
@@ -698,7 +733,7 @@
     }
 
     function addPiece(index, player, animate = true) {
-      const material = player === HUMAN ? blackMaterial : whiteMaterial;
+      const material = playerIsBlack(player) ? blackMaterial : whiteMaterial;
       const mesh = new THREE.Mesh(ballGeometry, material.clone());
       mesh.position.copy(worldPos(index));
       mesh.userData.cellIndex = index;
@@ -738,7 +773,7 @@
         gameOver = true;
         currentPlayer = EMPTY;
         highlightWin(line, player);
-        setStatus(player === HUMAN ? 'あなたの勝ち！' : 'CPUの勝ち', player === HUMAN ? '#111827' : '#f4f7ff');
+        setTurnStatus(player, player === HUMAN ? 'あなたの勝ち！' : 'CPUの勝ち');
         showToast(player === HUMAN ? 'WIN! 4つ並びました' : 'CPUが4つ並べました');
         if (touchUI) updateConfirmButton();
         return true;
@@ -1042,18 +1077,161 @@
       return best;
     }
 
+    function searchMoveScore(index, player) {
+      const opponent = player === CPU ? HUMAN : CPU;
+      const [x, y, z] = xyzOf(index);
+      let score = (4.5 - (Math.abs(x - 1.5) + Math.abs(y - 1.5) + Math.abs(z - 1.5))) * 8;
+
+      for (const li of linesByCell[index]) {
+        const line = winningLines[li];
+        let own = 0, enemy = 0;
+        for (const cell of line) {
+          if (board[cell] === player) own++;
+          else if (board[cell] === opponent) enemy++;
+        }
+        if (enemy === 0) score += [0, 18, 130, 1250][own + 1] ?? 0;
+        if (own === 0) score += [0, 15, 110, 1000][enemy] ?? 0;
+      }
+      return score;
+    }
+
+    function orderedSearchMoves(player, maxMoves = 12) {
+      const opponent = player === CPU ? HUMAN : CPU;
+      const scored = [];
+      const tactical = new Set();
+
+      for (const index of emptyCells()) {
+        let score = searchMoveScore(index, player);
+        if (isImmediateWin(index, player)) {
+          score += 100000000;
+          tactical.add(index);
+        }
+        if (isImmediateWin(index, opponent)) {
+          score += 90000000;
+          tactical.add(index);
+        }
+        scored.push([score, index]);
+      }
+
+      scored.sort((a, b) => b[0] - a[0]);
+      const moves = [...tactical];
+      for (const [, index] of scored) {
+        if (!moves.includes(index)) moves.push(index);
+        if (moves.length >= maxMoves) break;
+      }
+      return moves;
+    }
+
+    function evaluateSearchPosition() {
+      let score = 0;
+      const lineValues = [0, 14, 150, 1800, 1000000];
+
+      for (const line of winningLines) {
+        let cpu = 0, human = 0;
+        for (const cell of line) {
+          if (board[cell] === CPU) cpu++;
+          else if (board[cell] === HUMAN) human++;
+        }
+        if (cpu > 0 && human > 0) continue;
+        if (cpu > 0) score += lineValues[cpu];
+        if (human > 0) score -= lineValues[human] * 1.08;
+      }
+
+      // Small positional tie-breaker: central cells belong to more useful lines.
+      for (let i = 0; i < CELL_COUNT; i++) {
+        if (board[i] === EMPTY) continue;
+        const [x, y, z] = xyzOf(i);
+        const center = 4.5 - (Math.abs(x - 1.5) + Math.abs(y - 1.5) + Math.abs(z - 1.5));
+        score += board[i] === CPU ? center * 2 : -center * 2;
+      }
+      return score;
+    }
+
+    let searchTimedOut = false;
+
+    function alphaBeta(depth, maximizing, alpha, beta, deadline, lastMove, lastPlayer) {
+      if (performance.now() >= deadline) {
+        searchTimedOut = true;
+        return 0;
+      }
+      if (lastMove >= 0) {
+        const winningPlayer = findWinningLine(lastPlayer, lastMove);
+        if (winningPlayer) return lastPlayer === CPU ? 100000000 - depth : -100000000 + depth;
+      }
+      if (depth === 0 || boardFull()) return evaluateSearchPosition();
+
+      const player = maximizing ? CPU : HUMAN;
+      const moves = orderedSearchMoves(player);
+      if (!moves.length) return 0;
+
+      if (maximizing) {
+        let value = -Infinity;
+        for (const move of moves) {
+          board[move] = CPU;
+          value = Math.max(value, alphaBeta(depth - 1, false, alpha, beta, deadline, move, CPU));
+          board[move] = EMPTY;
+          if (searchTimedOut) return value;
+          alpha = Math.max(alpha, value);
+          if (alpha >= beta) break;
+        }
+        return value;
+      }
+
+      let value = Infinity;
+      for (const move of moves) {
+        board[move] = HUMAN;
+        value = Math.min(value, alphaBeta(depth - 1, true, alpha, beta, deadline, move, HUMAN));
+        board[move] = EMPTY;
+        if (searchTimedOut) return value;
+        beta = Math.min(beta, value);
+        if (alpha >= beta) break;
+      }
+      return value;
+    }
+
+    function chooseStrongestMove(empty) {
+      // Preserve the hard mode's immediate tactical guarantees as a baseline.
+      let bestMove = chooseHardMove(empty);
+      const moves = orderedSearchMoves(CPU, 12);
+      if (!moves.includes(bestMove)) moves.unshift(bestMove);
+
+      // Iterative deepening keeps the best fully completed depth if a phone
+      // reaches the time budget while searching a large position.
+      const deadline = performance.now() + 900;
+      for (let depth = 1; depth <= 4; depth++) {
+        searchTimedOut = false;
+        let roundBest = bestMove;
+        let roundScore = -Infinity;
+        for (const move of moves) {
+          if (performance.now() >= deadline) { searchTimedOut = true; break; }
+          board[move] = CPU;
+          const score = alphaBeta(depth - 1, false, -Infinity, Infinity, deadline, move, CPU);
+          board[move] = EMPTY;
+          if (searchTimedOut) break;
+          if (score > roundScore) {
+            roundScore = score;
+            roundBest = move;
+          }
+        }
+        if (searchTimedOut) break;
+        bestMove = roundBest;
+      }
+      return bestMove;
+    }
+
     function chooseCpuMove() {
       const empty = emptyCells();
       if (!empty.length) return -1;
       if (difficulty === 'easy') return chooseEasyMove(empty);
       if (difficulty === 'hard') return chooseHardMove(empty);
+      if (difficulty === 'strongest') return chooseStrongestMove(empty);
       return chooseNormalMove(empty);
     }
 
     function cpuTurn() {
       if (gameOver) return;
       currentPlayer = CPU;
-      setStatus('CPUが考えています…', '#f4f7ff');
+      setTurnStatus(CPU, 'CPUが考えています…');
       selectedIndex = -1;
       ghost.visible = false;
       if (touchUI) updateConfirmButton();
@@ -1071,7 +1249,7 @@
         }
         if (!gameOver) {
           currentPlayer = HUMAN;
-          setStatus('あなたの番です', '#111827');
+          setTurnStatus(HUMAN, 'あなたの番です');
           if (touchUI) updateConfirmButton();
         }
       }, 420);
@@ -1090,7 +1268,7 @@
     function restart() {
       clearTimeout(cpuTimer);
       gameOver = false;
-      currentPlayer = HUMAN;
+      currentPlayer = playerGoesFirst ? HUMAN : CPU;
       hoveredIndex = -1;
       selectedIndex = -1;
       selectedLayer = null;
@@ -1103,13 +1281,14 @@
         visibleNodes[i].visible = true;
         hitTargets[i].visible = true;
       }
-      setStatus('あなたの番です', '#111827');
+      setTurnStatus(currentPlayer, currentPlayer === HUMAN ? 'あなたの番です' : 'CPUが考えています…');
       if (touchUI) {
         setHudCollapsed(false);
         updateBoardFocus();
         updateConfirmButton();
       }
       showToast('NEW GAME');
+      if (!playerGoesFirst) cpuTurn();
     }
 
     function resetView() {
@@ -1202,6 +1381,12 @@
 
     restartBtn.addEventListener('click', restart);
     resetViewBtn.addEventListener('click', resetView);
+    playerOrderSelect.addEventListener('change', () => {
+      playerGoesFirst = playerOrderSelect.value === 'first';
+      localStorage.setItem('3d-four-player-order', playerGoesFirst ? 'first' : 'second');
+      updatePlayerLabels();
+      restart();
+    });
     difficultySelect.addEventListener('change', () => {
       difficulty = difficultySelect.value;
       localStorage.setItem('3d-four-difficulty', difficulty);
@@ -1227,8 +1412,11 @@
       renderer.render(scene, camera);
     }
 
-    setStatus('あなたの番です', '#111827');
+    updatePlayerLabels();
+    if (playerGoesFirst) setTurnStatus(HUMAN, 'あなたの番です');
+    else setTurnStatus(CPU, 'CPUが考えています…');
     animate();
+    if (!playerGoesFirst) cpuTurn();
   </script>
 </body>
 </html>
