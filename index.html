@@ -653,12 +653,22 @@
       setStatus(text, playerStatusColor(player));
     }
 
+    function updateGhostAppearance() {
+      const humanIsBlack = playerGoesFirst;
+      ghostCore.material.color.setHex(humanIsBlack ? 0x111a2a : 0xf6f8ff);
+      ghostCore.material.emissive.setHex(humanIsBlack ? 0x1683b1 : 0x5bbbd8);
+      ghostCore.material.emissiveIntensity = humanIsBlack ? 1.15 : 0.42;
+      ghostCore.material.opacity = humanIsBlack ? 0.86 : 0.78;
+      ghostOutline.material.color.setHex(humanIsBlack ? 0x8cecff : 0xd7f9ff);
+    }
+
     function updatePlayerLabels() {
       playerOrderSelect.value = playerGoesFirst ? 'first' : 'second';
       humanPieceIcon.className = `piece-icon ${playerGoesFirst ? 'black' : 'white'}`;
       cpuPieceIcon.className = `piece-icon ${playerGoesFirst ? 'white' : 'black'}`;
       humanPieceLabel.textContent = playerGoesFirst ? 'あなた（黒・先手）' : 'あなた（白・後手）';
       cpuPieceLabel.textContent = playerGoesFirst ? 'CPU（白・後手）' : 'CPU（黒・先手）';
+      updateGhostAppearance();
     }
 
     function setHudCollapsed(collapsed) {
