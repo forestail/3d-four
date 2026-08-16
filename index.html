@@ -7,7 +7,7 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg: #080b12;
+      --bg: #0b1422;
       --panel: rgba(12, 17, 28, 0.82);
       --border: rgba(255, 255, 255, 0.11);
       --text: #f5f7fb;
@@ -23,7 +23,9 @@
       height: 100%;
       margin: 0;
       overflow: hidden;
-      background: radial-gradient(circle at 50% 30%, #152238 0%, #080b12 52%, #03050a 100%);
+      background:
+        radial-gradient(circle at 50% 18%, #345b92 0%, #223c64 24%, rgba(18, 29, 49, 0.98) 50%, #0f1728 72%, #09111d 100%),
+        linear-gradient(180deg, #13203a 0%, #0a1220 100%);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
       color: var(--text);
     }
@@ -206,6 +208,147 @@
       pointer-events: none;
     }
 
+    .mobile-controls {
+      display: none;
+      position: fixed;
+      z-index: 14;
+      left: max(10px, env(safe-area-inset-left));
+      right: max(10px, env(safe-area-inset-right));
+      bottom: max(10px, env(safe-area-inset-bottom));
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(8, 12, 21, 0.94);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 16px 48px rgba(0,0,0,.42);
+    }
+
+    .touch-ui .mobile-controls { display: block; }
+    .touch-ui .help { display: none; }
+
+    .layer-strip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 8px;
+    }
+
+    .mobile-label {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .layer-buttons {
+      display: grid;
+      grid-template-columns: 1.35fr repeat(4, 1fr);
+      gap: 5px;
+      width: 100%;
+    }
+
+    .layer-btn, .view-btn {
+      min-height: 36px;
+      padding: 7px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+
+    .layer-btn.active, .view-btn.active {
+      border-color: rgba(101,210,255,.72);
+      background: rgba(101,210,255,.16);
+      box-shadow: inset 0 0 0 1px rgba(101,210,255,.18);
+    }
+
+    .mobile-main {
+      display: grid;
+      grid-template-columns: minmax(150px, 1.05fr) minmax(132px, .95fr);
+      gap: 9px;
+      align-items: stretch;
+    }
+
+    .position-panel, .mobile-side {
+      min-width: 0;
+      padding: 8px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.035);
+      border: 1px solid rgba(255,255,255,.055);
+    }
+
+    .selected-info {
+      min-height: 18px;
+      margin-bottom: 6px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .position-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      aspect-ratio: 1 / 1;
+    }
+
+    .cell-btn {
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      border-radius: 9px;
+      font-size: 16px;
+      line-height: 1;
+      background: rgba(255,255,255,.045);
+      touch-action: manipulation;
+    }
+
+    .cell-btn.empty::after { content: '＋'; color: #73829a; }
+    .cell-btn.human::after { content: '●'; color: #05070b; text-shadow: 0 0 1px #d7e2ef, 0 0 5px #74859c; }
+    .cell-btn.cpu::after { content: '●'; color: #f7f9ff; text-shadow: 0 0 6px rgba(255,255,255,.55); }
+    .cell-btn:disabled { opacity: .62; cursor: default; transform: none; }
+    .cell-btn.selected {
+      border-color: #65d2ff;
+      background: rgba(101,210,255,.19);
+      box-shadow: 0 0 0 2px rgba(101,210,255,.18), 0 0 18px rgba(101,210,255,.14);
+    }
+
+    .mobile-side {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .view-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .confirm-btn {
+      min-height: 46px;
+      margin-top: auto;
+      border-color: rgba(101,210,255,.62);
+      background: rgba(101,210,255,.18);
+      color: #eaf9ff;
+      font-weight: 900;
+    }
+
+    .confirm-btn:disabled {
+      opacity: .36;
+      cursor: default;
+      transform: none;
+    }
+
+    .cancel-btn {
+      min-height: 38px;
+      font-size: 12px;
+    }
+
     .toast {
       position: fixed;
       z-index: 20;
@@ -226,9 +369,33 @@
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
     @media (max-width: 650px) {
-      .hud { padding: 13px; width: min(330px, calc(100vw - 24px)); left: 12px; top: 12px; }
-      .help { right: 12px; bottom: 12px; font-size: 11px; }
+      .hud {
+        padding: 11px;
+        width: min(344px, calc(100vw - 20px));
+        left: 10px;
+        top: max(10px, env(safe-area-inset-top));
+        border-radius: 15px;
+      }
+      .title-row { margin-bottom: 8px; }
+      .status { min-height: 40px; padding: 8px 10px; }
+      .score { margin-top: 7px; }
+      .player { padding: 7px 8px; font-size: 13px; }
+      .difficulty-row { margin-top: 7px; padding: 7px 8px; }
+      .controls-row { margin-top: 6px; }
+      .controls-row button { padding: 8px 10px; font-size: 13px; }
+      .help { display: none; }
       h1 { font-size: 16px; }
+    }
+
+    @media (max-height: 720px) and (orientation: landscape) {
+      .touch-ui .hud { width: 285px; }
+      .touch-ui .score { display: none; }
+      .touch-ui .mobile-controls {
+        left: auto;
+        width: min(390px, calc(100vw - 315px));
+        max-height: calc(100vh - 20px);
+        overflow: auto;
+      }
     }
   </style>
 
@@ -272,6 +439,36 @@
       </div>
     </section>
 
+    <section id="mobileControls" class="mobile-controls" aria-label="スマートフォン用配置コントロール">
+      <div class="layer-strip">
+        <span class="mobile-label">高さ</span>
+        <div class="layer-buttons" role="group" aria-label="表示する高さ">
+          <button class="layer-btn active" type="button" data-layer="all">全体</button>
+          <button class="layer-btn" type="button" data-layer="0">1</button>
+          <button class="layer-btn" type="button" data-layer="1">2</button>
+          <button class="layer-btn" type="button" data-layer="2">3</button>
+          <button class="layer-btn" type="button" data-layer="3">4</button>
+        </div>
+      </div>
+      <div class="mobile-main">
+        <div class="position-panel">
+          <div id="selectedInfo" class="selected-info">盤面をタップ、または高さを選択</div>
+          <div id="positionGrid" class="position-grid" aria-label="選択した高さの4×4配置盤"></div>
+        </div>
+        <div class="mobile-side">
+          <span class="mobile-label">視点</span>
+          <div class="view-buttons" role="group" aria-label="視点切り替え">
+            <button class="view-btn" type="button" data-view="front">正面</button>
+            <button class="view-btn" type="button" data-view="top">上</button>
+            <button class="view-btn" type="button" data-view="right">右</button>
+            <button class="view-btn active" type="button" data-view="free">3D</button>
+          </div>
+          <button id="confirmMoveBtn" class="confirm-btn" type="button" disabled>ここに置く</button>
+          <button id="cancelSelectionBtn" class="cancel-btn" type="button">選択解除</button>
+        </div>
+      </div>
+    </section>
+
     <div class="help">ドラッグ: 回転 / ホイール・ピンチ: ズーム<br>空いている交点をクリックして黒球を置く</div>
     <div id="toast" class="toast"></div>
   </div>
@@ -296,6 +493,16 @@
     const resetViewBtn = document.getElementById('resetViewBtn');
     const difficultySelect = document.getElementById('difficultySelect');
     const toast = document.getElementById('toast');
+    const positionGrid = document.getElementById('positionGrid');
+    const selectedInfo = document.getElementById('selectedInfo');
+    const confirmMoveBtn = document.getElementById('confirmMoveBtn');
+    const cancelSelectionBtn = document.getElementById('cancelSelectionBtn');
+    const layerButtons = [...document.querySelectorAll('.layer-btn')];
+    const viewButtons = [...document.querySelectorAll('.view-btn')];
+
+    // Coarse pointers cover iPhone/iPad and most touch-first devices.
+    const touchUI = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+    document.body.classList.toggle('touch-ui', touchUI);
 
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x080b12, 0.035);
@@ -319,6 +526,10 @@
     controls.maxDistance = 20;
     controls.target.set(0, 0, 0);
     controls.update();
+    controls.addEventListener('start', () => {
+      if (!touchUI) return;
+      for (const btn of viewButtons) btn.classList.toggle('active', btn.dataset.view === 'free');
+    });
 
     scene.add(new THREE.HemisphereLight(0xcfe9ff, 0x11131a, 1.7));
     const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
@@ -369,7 +580,7 @@
     const nodeGeometry = new THREE.SphereGeometry(0.085, 12, 8);
     const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0xa8bed8, transparent: true, opacity: 0.45 });
     const hitMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.0, depthWrite: false });
-    const hitGeometry = new THREE.SphereGeometry(0.48, 10, 8);
+    const hitGeometry = new THREE.SphereGeometry(touchUI ? 0.62 : 0.48, 10, 8);
     const hitTargets = [];
     const visibleNodes = [];
 
@@ -429,6 +640,8 @@
     const pointer = new THREE.Vector2();
     let pointerDown = null;
     let hoveredIndex = -1;
+    let selectedIndex = -1;
+    let selectedLayer = null; // null = all heights, otherwise Y index 0..3
     let gameOver = false;
     let currentPlayer = HUMAN;
     let cpuTimer = null;
@@ -490,6 +703,126 @@
     winningLines.forEach((line, li) => line.forEach(cell => linesByCell[cell].push(li)));
     console.info(`Winning lines: ${winningLines.length}`); // 76 in standard 4×4×4 Qubic.
 
+    function layerOf(index) {
+      return xyzOf(index)[1];
+    }
+
+    function updateLayerButtonState() {
+      for (const btn of layerButtons) {
+        const layer = btn.dataset.layer === 'all' ? null : Number(btn.dataset.layer);
+        btn.classList.toggle('active', layer === selectedLayer);
+      }
+    }
+
+    function updateBoardFocus() {
+      for (let i = 0; i < CELL_COUNT; i++) {
+        const inLayer = selectedLayer === null || layerOf(i) === selectedLayer;
+        const occupied = board[i] !== EMPTY;
+        visibleNodes[i].visible = !occupied;
+        visibleNodes[i].material.opacity = selectedLayer === null ? 0.45 : (inLayer ? 0.72 : 0.08);
+        visibleNodes[i].scale.setScalar(selectedLayer !== null && inLayer ? 1.55 : 1);
+        hitTargets[i].visible = !occupied && inLayer;
+
+        const piece = pieceMeshes[i];
+        if (piece) {
+          piece.material.transparent = selectedLayer !== null && !inLayer;
+          piece.material.opacity = selectedLayer === null || inLayer ? 1 : 0.18;
+          piece.material.depthWrite = selectedLayer === null || inLayer;
+        }
+      }
+    }
+
+    function updateSelectedInfo() {
+      if (!touchUI) return;
+      if (selectedIndex >= 0) {
+        const [x, y, z] = xyzOf(selectedIndex);
+        selectedInfo.textContent = `高さ${y + 1} ・ 横${x + 1} ・ 奥行${z + 1}`;
+        confirmMoveBtn.disabled = gameOver || currentPlayer !== HUMAN || board[selectedIndex] !== EMPTY;
+      } else if (selectedLayer !== null) {
+        selectedInfo.textContent = `高さ${selectedLayer + 1}：4×4から置く場所を選択`;
+        confirmMoveBtn.disabled = true;
+      } else {
+        selectedInfo.textContent = '盤面をタップ、または高さを選択';
+        confirmMoveBtn.disabled = true;
+      }
+    }
+
+    function renderPositionGrid() {
+      if (!touchUI) return;
+      positionGrid.replaceChildren();
+      // The 4×4 panel is available only after choosing a height.
+      for (let z = SIZE - 1; z >= 0; z--) {
+        for (let x = 0; x < SIZE; x++) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'cell-btn';
+
+          if (selectedLayer === null) {
+            btn.classList.add('empty');
+            btn.disabled = true;
+            btn.title = '先に高さ1〜4を選択してください';
+          } else {
+            const index = indexOf(x, selectedLayer, z);
+            const value = board[index];
+            btn.dataset.index = String(index);
+            btn.title = `高さ${selectedLayer + 1} / 横${x + 1} / 奥行${z + 1}`;
+            if (value === HUMAN) btn.classList.add('human');
+            else if (value === CPU) btn.classList.add('cpu');
+            else btn.classList.add('empty');
+            btn.disabled = value !== EMPTY || gameOver || currentPlayer !== HUMAN;
+            btn.classList.toggle('selected', index === selectedIndex);
+            if (value === EMPTY) {
+              btn.addEventListener('click', () => selectCandidate(index));
+            }
+          }
+          positionGrid.appendChild(btn);
+        }
+      }
+      updateSelectedInfo();
+    }
+
+    function selectCandidate(index) {
+      if (!touchUI || gameOver || currentPlayer !== HUMAN || index < 0 || board[index] !== EMPTY) return;
+      selectedIndex = index;
+      // A direct 3D tap from the overview automatically focuses that height,
+      // making the selected cell and its neighbouring choices much clearer.
+      if (selectedLayer === null) selectedLayer = layerOf(index);
+      ghost.position.copy(worldPos(index));
+      ghost.visible = true;
+      updateLayerButtonState();
+      updateBoardFocus();
+      renderPositionGrid();
+      if (navigator.vibrate) navigator.vibrate(12);
+    }
+
+    function clearSelection() {
+      selectedIndex = -1;
+      ghost.visible = false;
+      renderPositionGrid();
+    }
+
+    function setLayer(layer) {
+      selectedLayer = layer;
+      if (selectedIndex >= 0 && selectedLayer !== null && layerOf(selectedIndex) !== selectedLayer) {
+        selectedIndex = -1;
+        ghost.visible = false;
+      }
+      updateLayerButtonState();
+      updateBoardFocus();
+      renderPositionGrid();
+    }
+
+    function setPresetView(name) {
+      const distance = 11.7;
+      if (name === 'front') camera.position.set(0, 0, distance);
+      else if (name === 'top') camera.position.set(0.001, distance, 0.001);
+      else if (name === 'right') camera.position.set(distance, 0, 0);
+      else camera.position.copy(DEFAULT_CAMERA);
+      controls.target.set(0, 0, 0);
+      controls.update();
+      for (const btn of viewButtons) btn.classList.toggle('active', btn.dataset.view === name);
+    }
+
     function findWinningLine(player, lastMove = null) {
       const candidates = lastMove == null ? winningLines : linesByCell[lastMove].map(i => winningLines[i]);
       for (const line of candidates) {
@@ -525,6 +858,10 @@
       pieceMeshes[index] = mesh;
       visibleNodes[index].visible = false;
       hitTargets[index].visible = false;
+      if (touchUI) {
+        updateBoardFocus();
+        renderPositionGrid();
+      }
 
       if (animate) {
         const start = performance.now();
@@ -554,6 +891,7 @@
         highlightWin(line, player);
         setStatus(player === HUMAN ? 'あなたの勝ち！' : 'CPUの勝ち', player === HUMAN ? '#111827' : '#f4f7ff');
         showToast(player === HUMAN ? 'WIN! 4つ並びました' : 'CPUが4つ並べました');
+        if (touchUI) renderPositionGrid();
         return true;
       }
 
@@ -562,6 +900,7 @@
         currentPlayer = EMPTY;
         setStatus('引き分けです', '#7f8a9d');
         showToast('DRAW');
+        if (touchUI) renderPositionGrid();
         return true;
       }
       return true;
@@ -866,7 +1205,9 @@
       if (gameOver) return;
       currentPlayer = CPU;
       setStatus('CPUが考えています…', '#f4f7ff');
+      selectedIndex = -1;
       ghost.visible = false;
+      if (touchUI) renderPositionGrid();
       clearTimeout(cpuTimer);
       cpuTimer = setTimeout(() => {
         if (gameOver) return;
@@ -875,6 +1216,7 @@
         if (!gameOver) {
           currentPlayer = HUMAN;
           setStatus('あなたの番です', '#111827');
+          if (touchUI) { updateBoardFocus(); renderPositionGrid(); }
         }
       }, 420);
     }
@@ -890,6 +1232,8 @@
       gameOver = false;
       currentPlayer = HUMAN;
       hoveredIndex = -1;
+      selectedIndex = -1;
+      selectedLayer = null;
       board.fill(EMPTY);
       piecesGroup.clear();
       winGroup.clear();
@@ -900,6 +1244,11 @@
         hitTargets[i].visible = true;
       }
       setStatus('あなたの番です', '#111827');
+      if (touchUI) {
+        updateLayerButtonState();
+        updateBoardFocus();
+        renderPositionGrid();
+      }
       showToast('NEW GAME');
     }
 
@@ -907,6 +1256,9 @@
       camera.position.copy(DEFAULT_CAMERA);
       controls.target.set(0, 0, 0);
       controls.update();
+      if (touchUI) {
+        for (const btn of viewButtons) btn.classList.toggle('active', btn.dataset.view === 'free');
+      }
     }
 
     function updatePointer(clientX, clientY) {
@@ -921,12 +1273,14 @@
       const hits = raycaster.intersectObjects(hitTargets, false);
       for (const hit of hits) {
         const i = hit.object.userData.cellIndex;
+        if (selectedLayer !== null && layerOf(i) !== selectedLayer) continue;
         if (board[i] === EMPTY && hit.object.visible) return i;
       }
       return -1;
     }
 
     renderer.domElement.addEventListener('pointermove', e => {
+      if (touchUI) return;
       if (gameOver || currentPlayer !== HUMAN || (pointerDown && pointerDown.moved)) {
         ghost.visible = false;
         return;
@@ -949,7 +1303,7 @@
       if (!pointerDown) return;
       if (Math.hypot(e.clientX - pointerDown.x, e.clientY - pointerDown.y) > 5) {
         pointerDown.moved = true;
-        ghost.visible = false;
+        if (!touchUI || selectedIndex < 0) ghost.visible = false;
       }
     });
 
@@ -959,13 +1313,43 @@
       pointerDown = null;
       if (!wasClick) return;
       const i = pickCell(e.clientX, e.clientY);
-      if (i >= 0) humanMove(i);
+      if (i >= 0) {
+        if (touchUI) selectCandidate(i);
+        else humanMove(i);
+      }
     });
 
     renderer.domElement.addEventListener('pointerleave', () => {
       pointerDown = null;
-      ghost.visible = false;
+      if (!touchUI || selectedIndex < 0) ghost.visible = false;
     });
+
+    if (touchUI) {
+      for (const btn of layerButtons) {
+        btn.addEventListener('click', () => {
+          const layer = btn.dataset.layer === 'all' ? null : Number(btn.dataset.layer);
+          setLayer(layer);
+        });
+      }
+
+      for (const btn of viewButtons) {
+        btn.addEventListener('click', () => setPresetView(btn.dataset.view));
+      }
+
+      confirmMoveBtn.addEventListener('click', () => {
+        if (selectedIndex < 0 || gameOver || currentPlayer !== HUMAN || board[selectedIndex] !== EMPTY) return;
+        const move = selectedIndex;
+        selectedIndex = -1;
+        ghost.visible = false;
+        humanMove(move);
+        renderPositionGrid();
+      });
+
+      cancelSelectionBtn.addEventListener('click', clearSelection);
+      updateLayerButtonState();
+      updateBoardFocus();
+      renderPositionGrid();
+    }
 
     restartBtn.addEventListener('click', restart);
     resetViewBtn.addEventListener('click', resetView);
