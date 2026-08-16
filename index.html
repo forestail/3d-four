@@ -224,174 +224,23 @@
       pointer-events: none;
     }
 
-    .mobile-controls {
+    .mobile-confirm {
       display: none;
       position: fixed;
       z-index: 14;
       left: 50%;
       bottom: max(10px, env(safe-area-inset-bottom));
-      width: min(520px, calc(100vw - 20px));
-      padding: 10px;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: rgba(8, 12, 21, 0.94);
-      backdrop-filter: blur(16px);
-      box-shadow: 0 16px 48px rgba(0,0,0,.42);
+      width: min(300px, calc(100vw - 32px));
       transform: translateX(-50%);
-      transition: width 160ms ease, padding 160ms ease, background 160ms ease;
     }
 
-    .touch-ui .mobile-controls { display: block; }
+    .touch-ui .mobile-confirm { display: block; }
     .touch-ui .help { display: none; }
     .touch-ui .panel-toggle { display: inline-flex; }
 
-    .mobile-controls-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .mobile-controls-heading {
-      display: flex;
-      align-items: baseline;
-      min-width: 0;
-      gap: 8px;
-    }
-
-    .mobile-controls-title {
-      flex: 0 0 auto;
-      font-size: 13px;
-      letter-spacing: .04em;
-    }
-
-    .mobile-controls-summary {
-      overflow: hidden;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 700;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .mobile-controls-body {
-      max-height: min(58vh, 440px);
-      padding-top: 8px;
-      overflow: auto;
-    }
-
-    .touch-ui .mobile-controls.is-collapsed {
-      width: min(330px, calc(100vw - 20px));
-      padding: 8px 10px;
-      background: rgba(8, 12, 21, 0.84);
-    }
-
-    .mobile-controls.is-collapsed .mobile-controls-body { display: none; }
-
-    .layer-strip {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      margin-bottom: 8px;
-    }
-
-    .mobile-label {
-      flex: 0 0 auto;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .layer-buttons {
-      display: grid;
-      grid-template-columns: 1.35fr repeat(4, 1fr);
-      gap: 5px;
-      width: 100%;
-    }
-
-    .layer-btn, .view-btn {
-      min-height: 36px;
-      padding: 7px 8px;
-      border-radius: 10px;
-      font-size: 12px;
-    }
-
-    .layer-btn.active, .view-btn.active {
-      border-color: rgba(101,210,255,.72);
-      background: rgba(101,210,255,.16);
-      box-shadow: inset 0 0 0 1px rgba(101,210,255,.18);
-    }
-
-    .mobile-main {
-      display: grid;
-      grid-template-columns: minmax(150px, 1.05fr) minmax(132px, .95fr);
-      gap: 9px;
-      align-items: stretch;
-    }
-
-    .position-panel, .mobile-side {
-      min-width: 0;
-      padding: 8px;
-      border-radius: 12px;
-      background: rgba(255,255,255,.035);
-      border: 1px solid rgba(255,255,255,.055);
-    }
-
-    .selected-info {
-      min-height: 18px;
-      margin-bottom: 6px;
-      overflow: hidden;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 700;
-      line-height: 1.35;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .position-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 5px;
-      aspect-ratio: 1 / 1;
-    }
-
-    .cell-btn {
-      min-width: 0;
-      min-height: 0;
-      padding: 0;
-      border-radius: 9px;
-      font-size: 16px;
-      line-height: 1;
-      background: rgba(255,255,255,.045);
-      touch-action: manipulation;
-    }
-
-    .cell-btn.empty::after { content: '＋'; color: #73829a; }
-    .cell-btn.human::after { content: '●'; color: #05070b; text-shadow: 0 0 1px #d7e2ef, 0 0 5px #74859c; }
-    .cell-btn.cpu::after { content: '●'; color: #f7f9ff; text-shadow: 0 0 6px rgba(255,255,255,.55); }
-    .cell-btn:disabled { opacity: .62; cursor: default; transform: none; }
-    .cell-btn.selected {
-      border-color: #65d2ff;
-      background: rgba(101,210,255,.19);
-      box-shadow: 0 0 0 2px rgba(101,210,255,.18), 0 0 18px rgba(101,210,255,.14);
-    }
-
-    .mobile-side {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
-
-    .view-buttons {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
-    }
-
     .confirm-btn {
+      width: 100%;
       min-height: 46px;
-      margin-top: auto;
       border-color: rgba(101,210,255,.62);
       background: rgba(101,210,255,.18);
       color: #eaf9ff;
@@ -402,11 +251,6 @@
       opacity: .36;
       cursor: default;
       transform: none;
-    }
-
-    .cancel-btn {
-      min-height: 38px;
-      font-size: 12px;
     }
 
     .toast {
@@ -469,14 +313,7 @@
     @media (max-height: 720px) and (orientation: landscape) {
       .touch-ui .hud { width: 285px; }
       .touch-ui .score { display: none; }
-      .touch-ui .mobile-controls {
-        left: auto;
-        right: max(10px, env(safe-area-inset-right));
-        transform: none;
-        width: min(390px, calc(100vw - 315px));
-        max-height: calc(100vh - 20px);
-        overflow: auto;
-      }
+      .touch-ui .mobile-confirm { width: min(260px, calc(100vw - 32px)); }
     }
   </style>
 
@@ -525,43 +362,8 @@
       </div>
     </section>
 
-    <section id="mobileControls" class="mobile-controls is-collapsed" aria-label="スマートフォン用配置コントロール">
-      <div class="mobile-controls-header">
-        <div class="mobile-controls-heading">
-          <strong class="mobile-controls-title">配置</strong>
-          <span id="mobileControlsSummary" class="mobile-controls-summary">キューブをタップ</span>
-        </div>
-        <button id="mobileControlsToggleBtn" class="panel-toggle" type="button" aria-expanded="false" aria-controls="mobileControlsBody">配置を開く</button>
-      </div>
-      <div id="mobileControlsBody" class="mobile-controls-body">
-        <div class="layer-strip">
-          <span class="mobile-label">高さ</span>
-          <div class="layer-buttons" role="group" aria-label="表示する高さ">
-            <button class="layer-btn active" type="button" data-layer="all">全体</button>
-            <button class="layer-btn" type="button" data-layer="0">1</button>
-            <button class="layer-btn" type="button" data-layer="1">2</button>
-            <button class="layer-btn" type="button" data-layer="2">3</button>
-            <button class="layer-btn" type="button" data-layer="3">4</button>
-          </div>
-        </div>
-        <div class="mobile-main">
-          <div class="position-panel">
-            <div id="selectedInfo" class="selected-info">盤面をタップ、または高さを選択</div>
-            <div id="positionGrid" class="position-grid" aria-label="選択した高さの4×4配置盤"></div>
-          </div>
-          <div class="mobile-side">
-            <span class="mobile-label">視点</span>
-            <div class="view-buttons" role="group" aria-label="視点切り替え">
-              <button class="view-btn" type="button" data-view="front">正面</button>
-              <button class="view-btn" type="button" data-view="top">上</button>
-              <button class="view-btn" type="button" data-view="right">右</button>
-              <button class="view-btn active" type="button" data-view="free">3D</button>
-            </div>
-            <button id="confirmMoveBtn" class="confirm-btn" type="button" disabled>ここに置く</button>
-            <button id="cancelSelectionBtn" class="cancel-btn" type="button">選択解除</button>
-          </div>
-        </div>
-      </div>
+    <section class="mobile-confirm" aria-label="配置の確定">
+      <button id="confirmMoveBtn" class="confirm-btn" type="button" disabled>ここに置く</button>
     </section>
 
     <div class="help">ドラッグ: 回転 / ホイール・ピンチ: ズーム<br>空いている交点をクリックして黒球を置く</div>
@@ -590,15 +392,7 @@
     const toast = document.getElementById('toast');
     const hud = document.getElementById('hud');
     const hudToggleBtn = document.getElementById('hudToggleBtn');
-    const mobileControls = document.getElementById('mobileControls');
-    const mobileControlsToggleBtn = document.getElementById('mobileControlsToggleBtn');
-    const mobileControlsSummary = document.getElementById('mobileControlsSummary');
-    const positionGrid = document.getElementById('positionGrid');
-    const selectedInfo = document.getElementById('selectedInfo');
     const confirmMoveBtn = document.getElementById('confirmMoveBtn');
-    const cancelSelectionBtn = document.getElementById('cancelSelectionBtn');
-    const layerButtons = [...document.querySelectorAll('.layer-btn')];
-    const viewButtons = [...document.querySelectorAll('.view-btn')];
 
     // Coarse pointers cover touch-first devices; the width fallback also gives
     // narrow desktop windows the same space-saving controls.
@@ -631,8 +425,6 @@
     controls.addEventListener('start', () => {
       if (!touchUI) return;
       setHudCollapsed(true);
-      setMobileControlsCollapsed(true);
-      for (const btn of viewButtons) btn.classList.toggle('active', btn.dataset.view === 'free');
     });
 
     scene.add(new THREE.HemisphereLight(0xcfe9ff, 0x11131a, 1.7));
@@ -818,20 +610,6 @@
       hudToggleBtn.textContent = collapsed ? '設定' : '情報を隠す';
     }
 
-    function setMobileControlsCollapsed(collapsed) {
-      if (!touchUI) return;
-      mobileControls.classList.toggle('is-collapsed', collapsed);
-      mobileControlsToggleBtn.setAttribute('aria-expanded', String(!collapsed));
-      mobileControlsToggleBtn.textContent = collapsed ? '配置を開く' : '閉じる';
-    }
-
-    function updateLayerButtonState() {
-      for (const btn of layerButtons) {
-        const layer = btn.dataset.layer === 'all' ? null : Number(btn.dataset.layer);
-        btn.classList.toggle('active', layer === selectedLayer);
-      }
-    }
-
     function updateBoardFocus() {
       for (let i = 0; i < CELL_COUNT; i++) {
         const inLayer = selectedLayer === null || layerOf(i) === selectedLayer;
@@ -839,7 +617,9 @@
         visibleNodes[i].visible = !occupied;
         visibleNodes[i].material.opacity = selectedLayer === null ? 0.45 : (inLayer ? 0.72 : 0.08);
         visibleNodes[i].scale.setScalar(selectedLayer !== null && inLayer ? 1.55 : 1);
-        hitTargets[i].visible = !occupied && inLayer;
+        // Every empty point remains tappable so a new tap can move the
+        // horizontal focus to another layer.
+        hitTargets[i].visible = !occupied;
 
         const piece = pieceMeshes[i];
         if (piece) {
@@ -850,102 +630,23 @@
       }
     }
 
-    function updateSelectedInfo() {
+    function updateConfirmButton() {
       if (!touchUI) return;
-      if (selectedIndex >= 0) {
-        const [x, y, z] = xyzOf(selectedIndex);
-        selectedInfo.textContent = `高さ${y + 1} ・ 横${x + 1} ・ 奥行${z + 1}`;
-        mobileControlsSummary.textContent = `高さ${y + 1}・横${x + 1}・奥行${z + 1}`;
-        confirmMoveBtn.disabled = gameOver || currentPlayer !== HUMAN || board[selectedIndex] !== EMPTY;
-      } else if (selectedLayer !== null) {
-        selectedInfo.textContent = `高さ${selectedLayer + 1}：4×4から置く場所を選択`;
-        mobileControlsSummary.textContent = `高さ${selectedLayer + 1}を表示中`;
-        confirmMoveBtn.disabled = true;
-      } else {
-        selectedInfo.textContent = '盤面をタップ、または高さを選択';
-        mobileControlsSummary.textContent = 'キューブをタップ';
-        confirmMoveBtn.disabled = true;
-      }
-    }
-
-    function renderPositionGrid() {
-      if (!touchUI) return;
-      positionGrid.replaceChildren();
-      // The 4×4 panel is available only after choosing a height.
-      for (let z = SIZE - 1; z >= 0; z--) {
-        for (let x = 0; x < SIZE; x++) {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'cell-btn';
-
-          if (selectedLayer === null) {
-            btn.classList.add('empty');
-            btn.disabled = true;
-            btn.title = '先に高さ1〜4を選択してください';
-          } else {
-            const index = indexOf(x, selectedLayer, z);
-            const value = board[index];
-            btn.dataset.index = String(index);
-            btn.title = `高さ${selectedLayer + 1} / 横${x + 1} / 奥行${z + 1}`;
-            if (value === HUMAN) btn.classList.add('human');
-            else if (value === CPU) btn.classList.add('cpu');
-            else btn.classList.add('empty');
-            btn.disabled = value !== EMPTY || gameOver || currentPlayer !== HUMAN;
-            btn.classList.toggle('selected', index === selectedIndex);
-            if (value === EMPTY) {
-              btn.addEventListener('click', () => selectCandidate(index));
-            }
-          }
-          positionGrid.appendChild(btn);
-        }
-      }
-      updateSelectedInfo();
+      confirmMoveBtn.disabled = selectedIndex < 0 || gameOver || currentPlayer !== HUMAN || board[selectedIndex] !== EMPTY;
     }
 
     function selectCandidate(index) {
       if (!touchUI || gameOver || currentPlayer !== HUMAN || index < 0 || board[index] !== EMPTY) return;
       selectedIndex = index;
-      // A direct 3D tap from the overview automatically focuses that height,
-      // making the selected cell and its neighbouring choices much clearer.
-      if (selectedLayer === null) selectedLayer = layerOf(index);
+      // Keep the selected horizontal plane in focus, and switch it whenever
+      // the player taps a point on a different height.
+      selectedLayer = layerOf(index);
       ghost.position.copy(worldPos(index));
       ghost.visible = true;
       setHudCollapsed(true);
-      setMobileControlsCollapsed(false);
-      updateLayerButtonState();
       updateBoardFocus();
-      renderPositionGrid();
+      updateConfirmButton();
       if (navigator.vibrate) navigator.vibrate(12);
-    }
-
-    function clearSelection() {
-      selectedIndex = -1;
-      ghost.visible = false;
-      renderPositionGrid();
-      setMobileControlsCollapsed(true);
-    }
-
-    function setLayer(layer) {
-      selectedLayer = layer;
-      if (selectedIndex >= 0 && selectedLayer !== null && layerOf(selectedIndex) !== selectedLayer) {
-        selectedIndex = -1;
-        ghost.visible = false;
-      }
-      updateLayerButtonState();
-      updateBoardFocus();
-      renderPositionGrid();
-    }
-
-    function setPresetView(name) {
-      const distance = 11.7;
-      if (name === 'front') camera.position.set(0, 0, distance);
-      else if (name === 'top') camera.position.set(0.001, distance, 0.001);
-      else if (name === 'right') camera.position.set(distance, 0, 0);
-      else camera.position.copy(DEFAULT_CAMERA);
-      controls.target.set(0, 0, 0);
-      controls.update();
-      for (const btn of viewButtons) btn.classList.toggle('active', btn.dataset.view === name);
-      if (selectedIndex < 0) setMobileControlsCollapsed(true);
     }
 
     function findWinningLine(player, lastMove = null) {
@@ -985,7 +686,7 @@
       hitTargets[index].visible = false;
       if (touchUI) {
         updateBoardFocus();
-        renderPositionGrid();
+        updateConfirmButton();
       }
 
       if (animate) {
@@ -1016,7 +717,7 @@
         highlightWin(line, player);
         setStatus(player === HUMAN ? 'あなたの勝ち！' : 'CPUの勝ち', player === HUMAN ? '#111827' : '#f4f7ff');
         showToast(player === HUMAN ? 'WIN! 4つ並びました' : 'CPUが4つ並べました');
-        if (touchUI) renderPositionGrid();
+        if (touchUI) updateConfirmButton();
         return true;
       }
 
@@ -1025,7 +726,7 @@
         currentPlayer = EMPTY;
         setStatus('引き分けです', '#7f8a9d');
         showToast('DRAW');
-        if (touchUI) renderPositionGrid();
+        if (touchUI) updateConfirmButton();
         return true;
       }
       return true;
@@ -1332,7 +1033,7 @@
       setStatus('CPUが考えています…', '#f4f7ff');
       selectedIndex = -1;
       ghost.visible = false;
-      if (touchUI) renderPositionGrid();
+      if (touchUI) updateConfirmButton();
       clearTimeout(cpuTimer);
       cpuTimer = setTimeout(() => {
         if (gameOver) return;
@@ -1341,7 +1042,7 @@
         if (!gameOver) {
           currentPlayer = HUMAN;
           setStatus('あなたの番です', '#111827');
-          if (touchUI) { updateBoardFocus(); renderPositionGrid(); }
+          if (touchUI) { updateBoardFocus(); updateConfirmButton(); }
         }
       }, 420);
     }
@@ -1351,7 +1052,7 @@
       placeMove(index, HUMAN);
       if (touchUI) {
         setHudCollapsed(true);
-        setMobileControlsCollapsed(true);
+        updateConfirmButton();
       }
       if (!gameOver) cpuTurn();
     }
@@ -1375,10 +1076,8 @@
       setStatus('あなたの番です', '#111827');
       if (touchUI) {
         setHudCollapsed(false);
-        setMobileControlsCollapsed(true);
-        updateLayerButtonState();
         updateBoardFocus();
-        renderPositionGrid();
+        updateConfirmButton();
       }
       showToast('NEW GAME');
     }
@@ -1387,9 +1086,6 @@
       camera.position.copy(DEFAULT_CAMERA);
       controls.target.set(0, 0, 0);
       controls.update();
-      if (touchUI) {
-        for (const btn of viewButtons) btn.classList.toggle('active', btn.dataset.view === 'free');
-      }
     }
 
     function updatePointer(clientX, clientY) {
@@ -1404,7 +1100,6 @@
       const hits = raycaster.intersectObjects(hitTargets, false);
       for (const hit of hits) {
         const i = hit.object.userData.cellIndex;
-        if (selectedLayer !== null && layerOf(i) !== selectedLayer) continue;
         if (board[i] === EMPTY && hit.object.visible) return i;
       }
       return -1;
@@ -1460,36 +1155,19 @@
         setHudCollapsed(!hud.classList.contains('is-collapsed'));
       });
 
-      mobileControlsToggleBtn.addEventListener('click', () => {
-        setMobileControlsCollapsed(!mobileControls.classList.contains('is-collapsed'));
-      });
-
-      for (const btn of layerButtons) {
-        btn.addEventListener('click', () => {
-          const layer = btn.dataset.layer === 'all' ? null : Number(btn.dataset.layer);
-          setLayer(layer);
-        });
-      }
-
-      for (const btn of viewButtons) {
-        btn.addEventListener('click', () => setPresetView(btn.dataset.view));
-      }
-
       confirmMoveBtn.addEventListener('click', () => {
         if (selectedIndex < 0 || gameOver || currentPlayer !== HUMAN || board[selectedIndex] !== EMPTY) return;
         const move = selectedIndex;
         selectedIndex = -1;
         ghost.visible = false;
+        updateBoardFocus();
+        updateConfirmButton();
         humanMove(move);
-        renderPositionGrid();
       });
 
-      cancelSelectionBtn.addEventListener('click', clearSelection);
       setHudCollapsed(false);
-      setMobileControlsCollapsed(true);
-      updateLayerButtonState();
       updateBoardFocus();
-      renderPositionGrid();
+      updateConfirmButton();
     }
 
     restartBtn.addEventListener('click', restart);
