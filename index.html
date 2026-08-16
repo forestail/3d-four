@@ -272,6 +272,26 @@
 
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+    /* Touch devices of any size, including iPad, can collapse the HUD. */
+    .touch-ui .hud {
+      transition: width 160ms ease, padding 160ms ease, background 160ms ease;
+    }
+    .touch-ui .hud.is-collapsed {
+      width: min(330px, calc(100vw - 20px));
+      padding: 8px 10px;
+      background: rgba(12, 17, 28, 0.72);
+    }
+    .touch-ui .hud.is-collapsed .title-row { margin-bottom: 6px; }
+    .touch-ui .hud.is-collapsed .badge { display: none; }
+    .touch-ui .hud.is-collapsed .status {
+      min-height: 34px;
+      padding: 6px 9px;
+      font-size: 13px;
+    }
+    .touch-ui .hud.is-collapsed .score,
+    .touch-ui .hud.is-collapsed .difficulty-row,
+    .touch-ui .hud.is-collapsed .controls-row { display: none; }
+
     @media (max-width: 650px) {
       .hud {
         padding: 11px;
@@ -290,24 +310,6 @@
       .help { display: none; }
       h1 { font-size: 16px; }
 
-      .touch-ui .hud {
-        transition: width 160ms ease, padding 160ms ease, background 160ms ease;
-      }
-      .touch-ui .hud.is-collapsed {
-        width: min(330px, calc(100vw - 20px));
-        padding: 8px 10px;
-        background: rgba(12, 17, 28, 0.72);
-      }
-      .touch-ui .hud.is-collapsed .title-row { margin-bottom: 6px; }
-      .touch-ui .hud.is-collapsed .badge { display: none; }
-      .touch-ui .hud.is-collapsed .status {
-        min-height: 34px;
-        padding: 6px 9px;
-        font-size: 13px;
-      }
-      .touch-ui .hud.is-collapsed .score,
-      .touch-ui .hud.is-collapsed .difficulty-row,
-      .touch-ui .hud.is-collapsed .controls-row { display: none; }
     }
 
     @media (max-height: 720px) and (orientation: landscape) {
