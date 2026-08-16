@@ -654,12 +654,13 @@
     }
 
     function updateGhostAppearance() {
-      const humanIsBlack = playerGoesFirst;
-      ghostCore.material.color.setHex(humanIsBlack ? 0x111a2a : 0xf6f8ff);
-      ghostCore.material.emissive.setHex(humanIsBlack ? 0x1683b1 : 0x5bbbd8);
-      ghostCore.material.emissiveIntensity = humanIsBlack ? 1.15 : 0.42;
-      ghostCore.material.opacity = humanIsBlack ? 0.86 : 0.78;
-      ghostOutline.material.color.setHex(humanIsBlack ? 0x8cecff : 0xd7f9ff);
+      // The unconfirmed marker is intentionally independent of player color:
+      // both black and white players get the same blue selection preview.
+      ghostCore.material.color.setHex(0x111a2a);
+      ghostCore.material.emissive.setHex(0x1683b1);
+      ghostCore.material.emissiveIntensity = 1.15;
+      ghostCore.material.opacity = 0.86;
+      ghostOutline.material.color.setHex(0x8cecff);
     }
 
     function updatePlayerLabels() {
