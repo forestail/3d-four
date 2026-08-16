@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>3D FOUR - 立体4目並べ</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b12;
+      --panel: rgba(12, 17, 28, 0.82);
+      --border: rgba(255, 255, 255, 0.11);
+      --text: #f5f7fb;
+      --muted: #9ca8bc;
+      --accent: #65d2ff;
+      --danger: #ff7676;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 30%, #152238 0%, #080b12 52%, #03050a 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+      color: var(--text);
+    }
+
+    #app, #stage { position: fixed; inset: 0; }
+    #stage { touch-action: none; }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    .hud {
+      position: fixed;
+      z-index: 10;
+      left: max(16px, env(safe-area-inset-left));
+      top: max(16px, env(safe-area-inset-top));
+      width: min(360px, calc(100vw - 32px));
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--panel);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0.08em;
+    }
+
+    .badge {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    .status {
+      min-height: 47px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      border-radius: 13px;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid rgba(255,255,255,0.06);
+      font-weight: 700;
+    }
+
+    .turn-dot {
+      width: 14px;
+      height: 14px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.35);
+      box-shadow: 0 0 14px rgba(255,255,255,0.18);
+      background: #111;
+    }
+
+    .score {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .player {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 10px;
+      border-radius: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.028);
+    }
+
+    .piece-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.28), 0 3px 8px rgba(0,0,0,0.35);
+    }
+
+    .piece-icon.black { background: radial-gradient(circle at 35% 28%, #6b7380, #111827 45%, #020307 100%); }
+    .piece-icon.white { background: radial-gradient(circle at 35% 28%, #ffffff, #e8eef8 48%, #8f9cad 100%); }
+
+    .difficulty-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 9px 10px;
+      border-radius: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.028);
+    }
+
+    .difficulty-row label {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    select {
+      appearance: none;
+      min-width: 112px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 30px 8px 10px;
+      background:
+        linear-gradient(45deg, transparent 50%, var(--muted) 50%) calc(100% - 14px) 50% / 5px 5px no-repeat,
+        linear-gradient(135deg, var(--muted) 50%, transparent 50%) calc(100% - 9px) 50% / 5px 5px no-repeat,
+        rgba(255,255,255,0.06);
+      background-color: #0f1726;
+      color: var(--text);
+      color-scheme: dark;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    select option {
+      background: #0f1726;
+      color: var(--text);
+    }
+
+    select option:checked {
+      background: #2a6df4;
+      color: #ffffff;
+    }
+
+    select:focus-visible, button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 13px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 140ms ease;
+    }
+
+    button:hover { background: rgba(255,255,255,0.11); transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .help {
+      position: fixed;
+      z-index: 10;
+      right: max(16px, env(safe-area-inset-right));
+      bottom: max(16px, env(safe-area-inset-bottom));
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      color: var(--muted);
+      background: rgba(7, 10, 17, 0.72);
+      backdrop-filter: blur(12px);
+      font-size: 12px;
+      line-height: 1.55;
+      pointer-events: none;
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      bottom: max(28px, env(safe-area-inset-bottom));
+      transform: translate(-50%, 18px);
+      opacity: 0;
+      pointer-events: none;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(10,14,24,0.9);
+      box-shadow: 0 18px 60px rgba(0,0,0,.42);
+      transition: 180ms ease;
+      font-weight: 800;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 650px) {
+      .hud { padding: 13px; width: min(330px, calc(100vw - 24px)); left: 12px; top: 12px; }
+      .help { right: 12px; bottom: 12px; font-size: 11px; }
+      h1 { font-size: 16px; }
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <div id="stage"></div>
+
+    <section class="hud" aria-live="polite">
+      <div class="title-row">
+        <h1>3D FOUR</h1>
+        <div class="badge">4 × 4 × 4</div>
+      </div>
+      <div class="status">
+        <span id="turnDot" class="turn-dot"></span>
+        <span id="statusText">あなたの番です</span>
+      </div>
+      <div class="score">
+        <div class="player"><span class="piece-icon black"></span><span>あなた（黒）</span></div>
+        <div class="player"><span class="piece-icon white"></span><span>CPU（白）</span></div>
+      </div>
+      <div class="difficulty-row">
+        <label for="difficultySelect">CPUの強さ</label>
+        <select id="difficultySelect" aria-label="CPUの強さ">
+          <option value="easy">弱い</option>
+          <option value="normal" selected>普通</option>
+          <option value="hard">強い</option>
+        </select>
+      </div>
+      <div class="controls-row">
+        <button id="restartBtn" type="button">最初から</button>
+        <button id="resetViewBtn" type="button">視点を戻す</button>
+      </div>
+    </section>
+
+    <div class="help">ドラッグ: 回転 / ホイール・ピンチ: ズーム<br>空いている交点をクリックして黒球を置く</div>
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const SIZE = 4;
+    const CELL_COUNT = SIZE ** 3;
+    const HUMAN = 1;
+    const CPU = 2;
+    const EMPTY = 0;
+    const SPACING = 1.55;
+    const BALL_RADIUS = 0.39;
+    const BOARD_EXTENT = (SIZE - 1) * SPACING;
+
+    const stage = document.getElementById('stage');
+    const statusText = document.getElementById('statusText');
+    const turnDot = document.getElementById('turnDot');
+    const restartBtn = document.getElementById('restartBtn');
+    const resetViewBtn = document.getElementById('resetViewBtn');
+    const difficultySelect = document.getElementById('difficultySelect');
+    const toast = document.getElementById('toast');
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x080b12, 0.035);
+
+    const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 100);
+    const DEFAULT_CAMERA = new THREE.Vector3(8.4, 7.1, 9.1);
+    camera.position.copy(DEFAULT_CAMERA);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.18;
+    stage.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.075;
+    controls.minDistance = 7;
+    controls.maxDistance = 20;
+    controls.target.set(0, 0, 0);
+    controls.update();
+
+    scene.add(new THREE.HemisphereLight(0xcfe9ff, 0x11131a, 1.7));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
+    keyLight.position.set(6, 9, 8);
+    scene.add(keyLight);
+    const rimLight = new THREE.DirectionalLight(0x78bfff, 2.2);
+    rimLight.position.set(-7, 2, -8);
+    scene.add(rimLight);
+
+    // Subtle floor shadow catcher impression.
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(8.5, 64),
+      new THREE.MeshBasicMaterial({ color: 0x09111e, transparent: true, opacity: 0.34, depthWrite: false })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -3.65;
+    scene.add(floor);
+
+    const boardGroup = new THREE.Group();
+    scene.add(boardGroup);
+
+    const latticeMaterial = new THREE.LineBasicMaterial({ color: 0x71839e, transparent: true, opacity: 0.24 });
+    const latticePositions = [];
+    const coord = i => (i - (SIZE - 1) / 2) * SPACING;
+
+    for (let a = 0; a < SIZE; a++) {
+      for (let b = 0; b < SIZE; b++) {
+        const av = coord(a), bv = coord(b);
+        // X-axis lines
+        latticePositions.push(-BOARD_EXTENT / 2, av, bv, BOARD_EXTENT / 2, av, bv);
+        // Y-axis lines
+        latticePositions.push(av, -BOARD_EXTENT / 2, bv, av, BOARD_EXTENT / 2, bv);
+        // Z-axis lines
+        latticePositions.push(av, bv, -BOARD_EXTENT / 2, av, bv, BOARD_EXTENT / 2);
+      }
+    }
+    const latticeGeometry = new THREE.BufferGeometry();
+    latticeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(latticePositions, 3));
+    boardGroup.add(new THREE.LineSegments(latticeGeometry, latticeMaterial));
+
+    const outerBox = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(BOARD_EXTENT + 0.5, BOARD_EXTENT + 0.5, BOARD_EXTENT + 0.5)),
+      new THREE.LineBasicMaterial({ color: 0x9bb6d8, transparent: true, opacity: 0.56 })
+    );
+    boardGroup.add(outerBox);
+
+    // Small nodes make depth easier to read and are also the clickable targets.
+    const nodeGeometry = new THREE.SphereGeometry(0.085, 12, 8);
+    const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0xa8bed8, transparent: true, opacity: 0.45 });
+    const hitMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.0, depthWrite: false });
+    const hitGeometry = new THREE.SphereGeometry(0.48, 10, 8);
+    const hitTargets = [];
+    const visibleNodes = [];
+
+    function indexOf(x, y, z) { return x + y * SIZE + z * SIZE * SIZE; }
+    function xyzOf(index) {
+      const z = Math.floor(index / (SIZE * SIZE));
+      const rest = index - z * SIZE * SIZE;
+      const y = Math.floor(rest / SIZE);
+      const x = rest % SIZE;
+      return [x, y, z];
+    }
+    function worldPos(index) {
+      const [x, y, z] = xyzOf(index);
+      return new THREE.Vector3(coord(x), coord(y), coord(z));
+    }
+
+    for (let i = 0; i < CELL_COUNT; i++) {
+      const p = worldPos(i);
+      const node = new THREE.Mesh(nodeGeometry, nodeMaterial.clone());
+      node.position.copy(p);
+      node.userData.cellIndex = i;
+      boardGroup.add(node);
+      visibleNodes.push(node);
+
+      const hit = new THREE.Mesh(hitGeometry, hitMaterial.clone());
+      hit.position.copy(p);
+      hit.userData.cellIndex = i;
+      boardGroup.add(hit);
+      hitTargets.push(hit);
+    }
+
+    const blackMaterial = new THREE.MeshStandardMaterial({
+      color: 0x090b10,
+      metalness: 0.45,
+      roughness: 0.25
+    });
+    const whiteMaterial = new THREE.MeshStandardMaterial({
+      color: 0xf6f8ff,
+      metalness: 0.2,
+      roughness: 0.2
+    });
+    const ballGeometry = new THREE.SphereGeometry(BALL_RADIUS, 34, 22);
+    const piecesGroup = new THREE.Group();
+    scene.add(piecesGroup);
+
+    const ghost = new THREE.Mesh(
+      new THREE.SphereGeometry(BALL_RADIUS * 1.03, 24, 16),
+      new THREE.MeshStandardMaterial({ color: 0x12151c, transparent: true, opacity: 0.44, roughness: 0.35 })
+    );
+    ghost.visible = false;
+    scene.add(ghost);
+
+    const winGroup = new THREE.Group();
+    scene.add(winGroup);
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    let pointerDown = null;
+    let hoveredIndex = -1;
+    let gameOver = false;
+    let currentPlayer = HUMAN;
+    let cpuTimer = null;
+    let toastTimer = null;
+    let difficulty = localStorage.getItem('3d-four-difficulty') || 'normal';
+    if (!['easy', 'normal', 'hard'].includes(difficulty)) difficulty = 'normal';
+    difficultySelect.value = difficulty;
+    const board = new Int8Array(CELL_COUNT);
+    const pieceMeshes = new Array(CELL_COUNT).fill(null);
+
+    function inBounds(x, y, z) {
+      return x >= 0 && x < SIZE && y >= 0 && y < SIZE && z >= 0 && z < SIZE;
+    }
+
+    // Generate every unique straight line of exactly 4 cells in the 4×4×4 cube.
+    // This naturally includes rows, columns, verticals, face diagonals and space diagonals.
+    function generateWinningLines() {
+      const lines = [];
+      const directions = [];
+
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dz = -1; dz <= 1; dz++) {
+            if (dx === 0 && dy === 0 && dz === 0) continue;
+            // Keep one of each opposite-direction pair.
+            const first = dx !== 0 ? dx : (dy !== 0 ? dy : dz);
+            if (first < 0) continue;
+            directions.push([dx, dy, dz]);
+          }
+        }
+      }
+
+      for (const [dx, dy, dz] of directions) {
+        for (let z = 0; z < SIZE; z++) {
+          for (let y = 0; y < SIZE; y++) {
+            for (let x = 0; x < SIZE; x++) {
+              const px = x - dx, py = y - dy, pz = z - dz;
+              if (inBounds(px, py, pz)) continue; // not the first cell of this line
+
+              const cells = [];
+              let ok = true;
+              for (let n = 0; n < SIZE; n++) {
+                const nx = x + dx * n;
+                const ny = y + dy * n;
+                const nz = z + dz * n;
+                if (!inBounds(nx, ny, nz)) { ok = false; break; }
+                cells.push(indexOf(nx, ny, nz));
+              }
+              if (ok) lines.push(cells);
+            }
+          }
+        }
+      }
+      return lines;
+    }
+
+    const winningLines = generateWinningLines();
+    const linesByCell = Array.from({ length: CELL_COUNT }, () => []);
+    winningLines.forEach((line, li) => line.forEach(cell => linesByCell[cell].push(li)));
+    console.info(`Winning lines: ${winningLines.length}`); // 76 in standard 4×4×4 Qubic.
+
+    function findWinningLine(player, lastMove = null) {
+      const candidates = lastMove == null ? winningLines : linesByCell[lastMove].map(i => winningLines[i]);
+      for (const line of candidates) {
+        if (line.every(i => board[i] === player)) return line;
+      }
+      return null;
+    }
+
+    function boardFull() {
+      for (let i = 0; i < CELL_COUNT; i++) if (board[i] === EMPTY) return false;
+      return true;
+    }
+
+    function setStatus(text, color) {
+      statusText.textContent = text;
+      turnDot.style.background = color;
+    }
+
+    function showToast(text) {
+      clearTimeout(toastTimer);
+      toast.textContent = text;
+      toast.classList.add('show');
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 1500);
+    }
+
+    function addPiece(index, player, animate = true) {
+      const material = player === HUMAN ? blackMaterial : whiteMaterial;
+      const mesh = new THREE.Mesh(ballGeometry, material.clone());
+      mesh.position.copy(worldPos(index));
+      mesh.userData.cellIndex = index;
+      mesh.scale.setScalar(animate ? 0.01 : 1);
+      piecesGroup.add(mesh);
+      pieceMeshes[index] = mesh;
+      visibleNodes[index].visible = false;
+      hitTargets[index].visible = false;
+
+      if (animate) {
+        const start = performance.now();
+        const duration = 230;
+        const tick = now => {
+          const t = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          const overshoot = t < 0.75 ? eased * 1.08 : 1 + (1 - t) * 0.08;
+          mesh.scale.setScalar(overshoot);
+          if (t < 1) requestAnimationFrame(tick);
+          else mesh.scale.setScalar(1);
+        };
+        requestAnimationFrame(tick);
+      }
+    }
+
+    function placeMove(index, player) {
+      if (board[index] !== EMPTY || gameOver) return false;
+      board[index] = player;
+      addPiece(index, player, true);
+      ghost.visible = false;
+
+      const line = findWinningLine(player, index);
+      if (line) {
+        gameOver = true;
+        currentPlayer = EMPTY;
+        highlightWin(line, player);
+        setStatus(player === HUMAN ? 'あなたの勝ち！' : 'CPUの勝ち', player === HUMAN ? '#111827' : '#f4f7ff');
+        showToast(player === HUMAN ? 'WIN! 4つ並びました' : 'CPUが4つ並べました');
+        return true;
+      }
+
+      if (boardFull()) {
+        gameOver = true;
+        currentPlayer = EMPTY;
+        setStatus('引き分けです', '#7f8a9d');
+        showToast('DRAW');
+        return true;
+      }
+      return true;
+    }
+
+    function highlightWin(line, player) {
+      winGroup.clear();
+      const p1 = worldPos(line[0]);
+      const p2 = worldPos(line[line.length - 1]);
+      const center = p1.clone().add(p2).multiplyScalar(0.5);
+      const length = p1.distanceTo(p2) + 0.5;
+
+      const material = new THREE.MeshBasicMaterial({
+        color: player === HUMAN ? 0x65d2ff : 0xffd866,
+        transparent: true,
+        opacity: 0.68,
+        depthWrite: false
+      });
+      const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, length, 16), material);
+      cylinder.position.copy(center);
+      cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p2.clone().sub(p1).normalize());
+      winGroup.add(cylinder);
+
+      for (const index of line) {
+        const ring = new THREE.Mesh(
+          new THREE.SphereGeometry(BALL_RADIUS * 1.18, 24, 16),
+          new THREE.MeshBasicMaterial({ color: material.color, transparent: true, opacity: 0.24, wireframe: true })
+        );
+        ring.position.copy(worldPos(index));
+        winGroup.add(ring);
+      }
+    }
+
+    function isImmediateWin(index, player) {
+      board[index] = player;
+      const win = !!findWinningLine(player, index);
+      board[index] = EMPTY;
+      return win;
+    }
+
+    function evaluateMove(index) {
+      let score = 0;
+      const [x, y, z] = xyzOf(index);
+
+      // Mild central preference: central 2×2×2 cells participate in many useful lines.
+      const centerDistance = Math.abs(x - 1.5) + Math.abs(y - 1.5) + Math.abs(z - 1.5);
+      score += (4.5 - centerDistance) * 1.4;
+
+      // Offensive and defensive line value.
+      for (const li of linesByCell[index]) {
+        const line = winningLines[li];
+        let cpu = 0, human = 0;
+        for (const c of line) {
+          if (board[c] === CPU) cpu++;
+          else if (board[c] === HUMAN) human++;
+        }
+
+        if (human === 0) {
+          const after = cpu + 1;
+          score += [0, 2.5, 14, 90, 100000][after];
+        }
+        if (cpu === 0 && human > 0) {
+          // Occupying this point closes one of the human's live lines.
+          score += [0, 4, 24, 260][human] ?? 0;
+        }
+      }
+
+      // Look one ply ahead: prefer moves that leave the opponent fewer strong threats.
+      board[index] = CPU;
+      let worstReply = 0;
+      for (let reply = 0; reply < CELL_COUNT; reply++) {
+        if (board[reply] !== EMPTY) continue;
+        if (isImmediateWin(reply, HUMAN)) {
+          worstReply = 10000;
+          break;
+        }
+        let replyScore = 0;
+        for (const li of linesByCell[reply]) {
+          const line = winningLines[li];
+          let h = 0, c = 0;
+          for (const cell of line) {
+            if (board[cell] === HUMAN) h++;
+            else if (board[cell] === CPU) c++;
+          }
+          if (c === 0) replyScore += [0, 2, 13, 120][h + 1] ?? 0;
+        }
+        worstReply = Math.max(worstReply, replyScore);
+      }
+      board[index] = EMPTY;
+      score -= worstReply * 0.42;
+
+      // Small randomness prevents identical-looking openings every game.
+      score += Math.random() * 0.8;
+      return score;
+    }
+
+    function emptyCells() {
+      const empty = [];
+      for (let i = 0; i < CELL_COUNT; i++) if (board[i] === EMPTY) empty.push(i);
+      return empty;
+    }
+
+    function immediateWins(player) {
+      const wins = [];
+      for (let i = 0; i < CELL_COUNT; i++) {
+        if (board[i] === EMPTY && isImmediateWin(i, player)) wins.push(i);
+      }
+      return wins;
+    }
+
+    // Count how many different winning moves a player would have on the following turn.
+    // Two or more is a fork: the opponent normally cannot block every threat.
+    function countNextTurnWinsAfter(index, player) {
+      if (board[index] !== EMPTY) return 0;
+      board[index] = player;
+      let count = 0;
+      for (let i = 0; i < CELL_COUNT; i++) {
+        if (board[i] === EMPTY && isImmediateWin(i, player)) count++;
+      }
+      board[index] = EMPTY;
+      return count;
+    }
+
+    function chooseEasyMove(empty) {
+      const cpuWins = empty.filter(i => isImmediateWin(i, CPU));
+      // Easy sometimes sees the obvious win, but deliberately misses it occasionally.
+      if (cpuWins.length && Math.random() < 0.72) {
+        return cpuWins[Math.floor(Math.random() * cpuWins.length)];
+      }
+
+      const humanWins = empty.filter(i => isImmediateWin(i, HUMAN));
+      // It also fails to block often enough to remain approachable for beginners.
+      if (humanWins.length && Math.random() < 0.52) {
+        return humanWins[Math.floor(Math.random() * humanWins.length)];
+      }
+
+      // Mostly random, with a small preference for useful-looking positions.
+      if (Math.random() < 0.28) {
+        const sample = empty.slice().sort(() => Math.random() - 0.5).slice(0, Math.min(7, empty.length));
+        let best = sample[0], bestScore = -Infinity;
+        for (const i of sample) {
+          const s = evaluateMove(i);
+          if (s > bestScore) { bestScore = s; best = i; }
+        }
+        return best;
+      }
+      return empty[Math.floor(Math.random() * empty.length)];
+    }
+
+    function chooseNormalMove(empty) {
+      // 1) Win now.
+      for (const i of empty) if (isImmediateWin(i, CPU)) return i;
+      // 2) Block a human win now.
+      for (const i of empty) if (isImmediateWin(i, HUMAN)) return i;
+      // 3) Heuristic / shallow look-ahead (the original CPU behaviour).
+      let best = empty[0];
+      let bestScore = -Infinity;
+      for (const i of empty) {
+        const s = evaluateMove(i);
+        if (s > bestScore) { bestScore = s; best = i; }
+      }
+      return best;
+    }
+
+    function evaluateHardMove(index) {
+      let score = evaluateMove(index) * 1.15;
+
+      board[index] = CPU;
+
+      // Reward moves that create multiple simultaneous winning threats.
+      let cpuThreats = 0;
+      let humanImmediateReplies = 0;
+      for (let i = 0; i < CELL_COUNT; i++) {
+        if (board[i] !== EMPTY) continue;
+        if (isImmediateWin(i, CPU)) cpuThreats++;
+        if (isImmediateWin(i, HUMAN)) humanImmediateReplies++;
+      }
+      score += cpuThreats * 1800;
+      if (cpuThreats >= 2) score += 18000;
+      score -= humanImmediateReplies * 22000;
+
+      // Two-ply defensive look-ahead. Consider the strongest human replies and
+      // prefer positions where the CPU still has a good answer afterwards.
+      const replies = [];
+      for (let reply = 0; reply < CELL_COUNT; reply++) {
+        if (board[reply] !== EMPTY) continue;
+        let replyScore = 0;
+        const [x, y, z] = xyzOf(reply);
+        const centerDistance = Math.abs(x - 1.5) + Math.abs(y - 1.5) + Math.abs(z - 1.5);
+        replyScore += (4.5 - centerDistance) * 1.2;
+
+        for (const li of linesByCell[reply]) {
+          const line = winningLines[li];
+          let h = 0, c = 0;
+          for (const cell of line) {
+            if (board[cell] === HUMAN) h++;
+            else if (board[cell] === CPU) c++;
+          }
+          if (c === 0) replyScore += [0, 3, 18, 180][h + 1] ?? 0;
+          if (h === 0 && c > 0) replyScore += [0, 2, 12, 90][c] ?? 0;
+        }
+        replies.push([replyScore, reply]);
+      }
+      replies.sort((a, b) => b[0] - a[0]);
+
+      let worstReplyPenalty = 0;
+      for (const [, reply] of replies.slice(0, 10)) {
+        board[reply] = HUMAN;
+        if (findWinningLine(HUMAN, reply)) {
+          worstReplyPenalty = Math.max(worstReplyPenalty, 50000);
+          board[reply] = EMPTY;
+          continue;
+        }
+
+        const cpuWins = immediateWins(CPU).length;
+        let cpuBestFollowup = -Infinity;
+        for (let next = 0; next < CELL_COUNT; next++) {
+          if (board[next] !== EMPTY) continue;
+          let local = 0;
+          for (const li of linesByCell[next]) {
+            const line = winningLines[li];
+            let c = 0, h = 0;
+            for (const cell of line) {
+              if (board[cell] === CPU) c++;
+              else if (board[cell] === HUMAN) h++;
+            }
+            if (h === 0) local += [0, 3, 20, 260][c + 1] ?? 0;
+            if (c === 0) local += [0, 2, 14, 160][h] ?? 0;
+          }
+          cpuBestFollowup = Math.max(cpuBestFollowup, local);
+        }
+        const penalty = Math.max(0, 280 - cpuBestFollowup) - cpuWins * 450;
+        worstReplyPenalty = Math.max(worstReplyPenalty, penalty);
+        board[reply] = EMPTY;
+      }
+
+      board[index] = EMPTY;
+      score -= worstReplyPenalty * 0.75;
+      return score;
+    }
+
+    function chooseHardMove(empty) {
+      // 1) Never miss an immediate win.
+      for (const i of empty) if (isImmediateWin(i, CPU)) return i;
+      // 2) Never allow an immediate human win when it can be blocked.
+      const humanWins = empty.filter(i => isImmediateWin(i, HUMAN));
+      if (humanWins.length) {
+        // If there are multiple threats, choose the block that gives the best counterplay.
+        let best = humanWins[0], bestScore = -Infinity;
+        for (const i of humanWins) {
+          const s = evaluateHardMove(i);
+          if (s > bestScore) { bestScore = s; best = i; }
+        }
+        return best;
+      }
+
+      // 3) Prefer a move that creates a fork (two or more wins available next turn).
+      const forkMoves = [];
+      for (const i of empty) {
+        const threats = countNextTurnWinsAfter(i, CPU);
+        if (threats >= 2) forkMoves.push([threats, i]);
+      }
+      if (forkMoves.length) {
+        forkMoves.sort((a, b) => b[0] - a[0]);
+        return forkMoves[0][1];
+      }
+
+      // 4) Detect and occupy human fork points before they become unavoidable.
+      const humanForks = [];
+      for (const i of empty) {
+        const threats = countNextTurnWinsAfter(i, HUMAN);
+        if (threats >= 2) humanForks.push([threats, i]);
+      }
+      if (humanForks.length) {
+        let best = humanForks[0][1], bestScore = -Infinity;
+        for (const [, i] of humanForks) {
+          const s = evaluateHardMove(i);
+          if (s > bestScore) { bestScore = s; best = i; }
+        }
+        return best;
+      }
+
+      // 5) Deeper tactical evaluation of all legal moves.
+      let best = empty[0];
+      let bestScore = -Infinity;
+      for (const i of empty) {
+        const s = evaluateHardMove(i);
+        if (s > bestScore) { bestScore = s; best = i; }
+      }
+      return best;
+    }
+
+    function chooseCpuMove() {
+      const empty = emptyCells();
+      if (!empty.length) return -1;
+      if (difficulty === 'easy') return chooseEasyMove(empty);
+      if (difficulty === 'hard') return chooseHardMove(empty);
+      return chooseNormalMove(empty);
+    }
+
+    function cpuTurn() {
+      if (gameOver) return;
+      currentPlayer = CPU;
+      setStatus('CPUが考えています…', '#f4f7ff');
+      ghost.visible = false;
+      clearTimeout(cpuTimer);
+      cpuTimer = setTimeout(() => {
+        if (gameOver) return;
+        const move = chooseCpuMove();
+        placeMove(move, CPU);
+        if (!gameOver) {
+          currentPlayer = HUMAN;
+          setStatus('あなたの番です', '#111827');
+        }
+      }, 420);
+    }
+
+    function humanMove(index) {
+      if (gameOver || currentPlayer !== HUMAN || board[index] !== EMPTY) return;
+      placeMove(index, HUMAN);
+      if (!gameOver) cpuTurn();
+    }
+
+    function restart() {
+      clearTimeout(cpuTimer);
+      gameOver = false;
+      currentPlayer = HUMAN;
+      hoveredIndex = -1;
+      board.fill(EMPTY);
+      piecesGroup.clear();
+      winGroup.clear();
+      ghost.visible = false;
+      for (let i = 0; i < CELL_COUNT; i++) {
+        pieceMeshes[i] = null;
+        visibleNodes[i].visible = true;
+        hitTargets[i].visible = true;
+      }
+      setStatus('あなたの番です', '#111827');
+      showToast('NEW GAME');
+    }
+
+    function resetView() {
+      camera.position.copy(DEFAULT_CAMERA);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    function updatePointer(clientX, clientY) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    }
+
+    function pickCell(clientX, clientY) {
+      updatePointer(clientX, clientY);
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(hitTargets, false);
+      for (const hit of hits) {
+        const i = hit.object.userData.cellIndex;
+        if (board[i] === EMPTY && hit.object.visible) return i;
+      }
+      return -1;
+    }
+
+    renderer.domElement.addEventListener('pointermove', e => {
+      if (gameOver || currentPlayer !== HUMAN || (pointerDown && pointerDown.moved)) {
+        ghost.visible = false;
+        return;
+      }
+      const i = pickCell(e.clientX, e.clientY);
+      hoveredIndex = i;
+      if (i >= 0) {
+        ghost.position.copy(worldPos(i));
+        ghost.visible = true;
+      } else {
+        ghost.visible = false;
+      }
+    });
+
+    renderer.domElement.addEventListener('pointerdown', e => {
+      pointerDown = { x: e.clientX, y: e.clientY, moved: false };
+    });
+
+    renderer.domElement.addEventListener('pointermove', e => {
+      if (!pointerDown) return;
+      if (Math.hypot(e.clientX - pointerDown.x, e.clientY - pointerDown.y) > 5) {
+        pointerDown.moved = true;
+        ghost.visible = false;
+      }
+    });
+
+    renderer.domElement.addEventListener('pointerup', e => {
+      if (!pointerDown) return;
+      const wasClick = !pointerDown.moved;
+      pointerDown = null;
+      if (!wasClick) return;
+      const i = pickCell(e.clientX, e.clientY);
+      if (i >= 0) humanMove(i);
+    });
+
+    renderer.domElement.addEventListener('pointerleave', () => {
+      pointerDown = null;
+      ghost.visible = false;
+    });
+
+    restartBtn.addEventListener('click', restart);
+    resetViewBtn.addEventListener('click', resetView);
+    difficultySelect.addEventListener('change', () => {
+      difficulty = difficultySelect.value;
+      localStorage.setItem('3d-four-difficulty', difficulty);
+      const label = difficultySelect.options[difficultySelect.selectedIndex].text;
+      showToast(`CPU: ${label}`);
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+
+      // Gentle pulse for the winning line.
+      if (gameOver && winGroup.children.length) {
+        const pulse = 1 + Math.sin(performance.now() * 0.0045) * 0.035;
+        winGroup.scale.setScalar(pulse);
+      }
+      renderer.render(scene, camera);
+    }
+
+    setStatus('あなたの番です', '#111827');
+    animate();
+  </script>
+</body>
+</html>
