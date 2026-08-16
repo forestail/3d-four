@@ -1039,10 +1039,17 @@
         if (gameOver) return;
         const move = chooseCpuMove();
         placeMove(move, CPU);
+        if (touchUI) {
+          // The CPU may play on another level. Return to the overview so its
+          // new piece is shown at full opacity instead of being dimmed by the
+          // player's previous horizontal focus.
+          selectedLayer = null;
+          updateBoardFocus();
+        }
         if (!gameOver) {
           currentPlayer = HUMAN;
           setStatus('あなたの番です', '#111827');
-          if (touchUI) { updateBoardFocus(); updateConfirmButton(); }
+          if (touchUI) updateConfirmButton();
         }
       }, 420);
     }
