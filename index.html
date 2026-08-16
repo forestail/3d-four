@@ -50,10 +50,26 @@
 
     .title-row {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 12px;
+    }
+
+    .title-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-toggle {
+      display: none;
+      min-height: 32px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      color: var(--accent);
+      font-size: 12px;
+      white-space: nowrap;
     }
 
     h1 {
@@ -212,21 +228,65 @@
       display: none;
       position: fixed;
       z-index: 14;
-      left: max(10px, env(safe-area-inset-left));
-      right: max(10px, env(safe-area-inset-right));
+      left: 50%;
       bottom: max(10px, env(safe-area-inset-bottom));
-      max-width: 520px;
-      margin: 0 auto;
+      width: min(520px, calc(100vw - 20px));
       padding: 10px;
       border: 1px solid var(--border);
       border-radius: 16px;
       background: rgba(8, 12, 21, 0.94);
       backdrop-filter: blur(16px);
       box-shadow: 0 16px 48px rgba(0,0,0,.42);
+      transform: translateX(-50%);
+      transition: width 160ms ease, padding 160ms ease, background 160ms ease;
     }
 
     .touch-ui .mobile-controls { display: block; }
     .touch-ui .help { display: none; }
+    .touch-ui .panel-toggle { display: inline-flex; }
+
+    .mobile-controls-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .mobile-controls-heading {
+      display: flex;
+      align-items: baseline;
+      min-width: 0;
+      gap: 8px;
+    }
+
+    .mobile-controls-title {
+      flex: 0 0 auto;
+      font-size: 13px;
+      letter-spacing: .04em;
+    }
+
+    .mobile-controls-summary {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mobile-controls-body {
+      max-height: min(58vh, 440px);
+      padding-top: 8px;
+      overflow: auto;
+    }
+
+    .touch-ui .mobile-controls.is-collapsed {
+      width: min(330px, calc(100vw - 20px));
+      padding: 8px 10px;
+      background: rgba(8, 12, 21, 0.84);
+    }
+
+    .mobile-controls.is-collapsed .mobile-controls-body { display: none; }
 
     .layer-strip {
       display: flex;
@@ -385,6 +445,25 @@
       .controls-row button { padding: 8px 10px; font-size: 13px; }
       .help { display: none; }
       h1 { font-size: 16px; }
+
+      .touch-ui .hud {
+        transition: width 160ms ease, padding 160ms ease, background 160ms ease;
+      }
+      .touch-ui .hud.is-collapsed {
+        width: min(330px, calc(100vw - 20px));
+        padding: 8px 10px;
+        background: rgba(12, 17, 28, 0.72);
+      }
+      .touch-ui .hud.is-collapsed .title-row { margin-bottom: 6px; }
+      .touch-ui .hud.is-collapsed .badge { display: none; }
+      .touch-ui .hud.is-collapsed .status {
+        min-height: 34px;
+        padding: 6px 9px;
+        font-size: 13px;
+      }
+      .touch-ui .hud.is-collapsed .score,
+      .touch-ui .hud.is-collapsed .difficulty-row,
+      .touch-ui .hud.is-collapsed .controls-row { display: none; }
     }
 
     @media (max-height: 720px) and (orientation: landscape) {
@@ -392,6 +471,8 @@
       .touch-ui .score { display: none; }
       .touch-ui .mobile-controls {
         left: auto;
+        right: max(10px, env(safe-area-inset-right));
+        transform: none;
         width: min(390px, calc(100vw - 315px));
         max-height: calc(100vh - 20px);
         overflow: auto;
@@ -412,59 +493,73 @@
   <div id="app">
     <div id="stage"></div>
 
-    <section class="hud" aria-live="polite">
+    <section id="hud" class="hud" aria-live="polite">
       <div class="title-row">
         <h1>3D FOUR</h1>
-        <div class="badge">4 × 4 × 4</div>
+        <div class="title-actions">
+          <div class="badge">4 × 4 × 4</div>
+          <button id="hudToggleBtn" class="panel-toggle" type="button" aria-expanded="true" aria-controls="hudDetails">情報を隠す</button>
+        </div>
       </div>
       <div class="status">
         <span id="turnDot" class="turn-dot"></span>
         <span id="statusText">あなたの番です</span>
       </div>
-      <div class="score">
-        <div class="player"><span class="piece-icon black"></span><span>あなた（黒）</span></div>
-        <div class="player"><span class="piece-icon white"></span><span>CPU（白）</span></div>
-      </div>
-      <div class="difficulty-row">
-        <label for="difficultySelect">CPUの強さ</label>
-        <select id="difficultySelect" aria-label="CPUの強さ">
-          <option value="easy">弱い</option>
-          <option value="normal" selected>普通</option>
-          <option value="hard">強い</option>
-        </select>
-      </div>
-      <div class="controls-row">
-        <button id="restartBtn" type="button">最初から</button>
-        <button id="resetViewBtn" type="button">視点を戻す</button>
+      <div id="hudDetails">
+        <div class="score">
+          <div class="player"><span class="piece-icon black"></span><span>あなた（黒）</span></div>
+          <div class="player"><span class="piece-icon white"></span><span>CPU（白）</span></div>
+        </div>
+        <div class="difficulty-row">
+          <label for="difficultySelect">CPUの強さ</label>
+          <select id="difficultySelect" aria-label="CPUの強さ">
+            <option value="easy">弱い</option>
+            <option value="normal" selected>普通</option>
+            <option value="hard">強い</option>
+          </select>
+        </div>
+        <div class="controls-row">
+          <button id="restartBtn" type="button">最初から</button>
+          <button id="resetViewBtn" type="button">視点を戻す</button>
+        </div>
       </div>
     </section>
 
-    <section id="mobileControls" class="mobile-controls" aria-label="スマートフォン用配置コントロール">
-      <div class="layer-strip">
-        <span class="mobile-label">高さ</span>
-        <div class="layer-buttons" role="group" aria-label="表示する高さ">
-          <button class="layer-btn active" type="button" data-layer="all">全体</button>
-          <button class="layer-btn" type="button" data-layer="0">1</button>
-          <button class="layer-btn" type="button" data-layer="1">2</button>
-          <button class="layer-btn" type="button" data-layer="2">3</button>
-          <button class="layer-btn" type="button" data-layer="3">4</button>
+    <section id="mobileControls" class="mobile-controls is-collapsed" aria-label="スマートフォン用配置コントロール">
+      <div class="mobile-controls-header">
+        <div class="mobile-controls-heading">
+          <strong class="mobile-controls-title">配置</strong>
+          <span id="mobileControlsSummary" class="mobile-controls-summary">キューブをタップ</span>
         </div>
+        <button id="mobileControlsToggleBtn" class="panel-toggle" type="button" aria-expanded="false" aria-controls="mobileControlsBody">配置を開く</button>
       </div>
-      <div class="mobile-main">
-        <div class="position-panel">
-          <div id="selectedInfo" class="selected-info">盤面をタップ、または高さを選択</div>
-          <div id="positionGrid" class="position-grid" aria-label="選択した高さの4×4配置盤"></div>
-        </div>
-        <div class="mobile-side">
-          <span class="mobile-label">視点</span>
-          <div class="view-buttons" role="group" aria-label="視点切り替え">
-            <button class="view-btn" type="button" data-view="front">正面</button>
-            <button class="view-btn" type="button" data-view="top">上</button>
-            <button class="view-btn" type="button" data-view="right">右</button>
-            <button class="view-btn active" type="button" data-view="free">3D</button>
+      <div id="mobileControlsBody" class="mobile-controls-body">
+        <div class="layer-strip">
+          <span class="mobile-label">高さ</span>
+          <div class="layer-buttons" role="group" aria-label="表示する高さ">
+            <button class="layer-btn active" type="button" data-layer="all">全体</button>
+            <button class="layer-btn" type="button" data-layer="0">1</button>
+            <button class="layer-btn" type="button" data-layer="1">2</button>
+            <button class="layer-btn" type="button" data-layer="2">3</button>
+            <button class="layer-btn" type="button" data-layer="3">4</button>
           </div>
-          <button id="confirmMoveBtn" class="confirm-btn" type="button" disabled>ここに置く</button>
-          <button id="cancelSelectionBtn" class="cancel-btn" type="button">選択解除</button>
+        </div>
+        <div class="mobile-main">
+          <div class="position-panel">
+            <div id="selectedInfo" class="selected-info">盤面をタップ、または高さを選択</div>
+            <div id="positionGrid" class="position-grid" aria-label="選択した高さの4×4配置盤"></div>
+          </div>
+          <div class="mobile-side">
+            <span class="mobile-label">視点</span>
+            <div class="view-buttons" role="group" aria-label="視点切り替え">
+              <button class="view-btn" type="button" data-view="front">正面</button>
+              <button class="view-btn" type="button" data-view="top">上</button>
+              <button class="view-btn" type="button" data-view="right">右</button>
+              <button class="view-btn active" type="button" data-view="free">3D</button>
+            </div>
+            <button id="confirmMoveBtn" class="confirm-btn" type="button" disabled>ここに置く</button>
+            <button id="cancelSelectionBtn" class="cancel-btn" type="button">選択解除</button>
+          </div>
         </div>
       </div>
     </section>
@@ -493,6 +588,11 @@
     const resetViewBtn = document.getElementById('resetViewBtn');
     const difficultySelect = document.getElementById('difficultySelect');
     const toast = document.getElementById('toast');
+    const hud = document.getElementById('hud');
+    const hudToggleBtn = document.getElementById('hudToggleBtn');
+    const mobileControls = document.getElementById('mobileControls');
+    const mobileControlsToggleBtn = document.getElementById('mobileControlsToggleBtn');
+    const mobileControlsSummary = document.getElementById('mobileControlsSummary');
     const positionGrid = document.getElementById('positionGrid');
     const selectedInfo = document.getElementById('selectedInfo');
     const confirmMoveBtn = document.getElementById('confirmMoveBtn');
@@ -500,8 +600,10 @@
     const layerButtons = [...document.querySelectorAll('.layer-btn')];
     const viewButtons = [...document.querySelectorAll('.view-btn')];
 
-    // Coarse pointers cover iPhone/iPad and most touch-first devices.
-    const touchUI = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+    // Coarse pointers cover touch-first devices; the width fallback also gives
+    // narrow desktop windows the same space-saving controls.
+    const touchUI = window.matchMedia('(pointer: coarse)').matches ||
+      navigator.maxTouchPoints > 0 || window.matchMedia('(max-width: 650px)').matches;
     document.body.classList.toggle('touch-ui', touchUI);
 
     const scene = new THREE.Scene();
@@ -528,6 +630,8 @@
     controls.update();
     controls.addEventListener('start', () => {
       if (!touchUI) return;
+      setHudCollapsed(true);
+      setMobileControlsCollapsed(true);
       for (const btn of viewButtons) btn.classList.toggle('active', btn.dataset.view === 'free');
     });
 
@@ -707,6 +811,20 @@
       return xyzOf(index)[1];
     }
 
+    function setHudCollapsed(collapsed) {
+      if (!touchUI) return;
+      hud.classList.toggle('is-collapsed', collapsed);
+      hudToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+      hudToggleBtn.textContent = collapsed ? '設定' : '情報を隠す';
+    }
+
+    function setMobileControlsCollapsed(collapsed) {
+      if (!touchUI) return;
+      mobileControls.classList.toggle('is-collapsed', collapsed);
+      mobileControlsToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+      mobileControlsToggleBtn.textContent = collapsed ? '配置を開く' : '閉じる';
+    }
+
     function updateLayerButtonState() {
       for (const btn of layerButtons) {
         const layer = btn.dataset.layer === 'all' ? null : Number(btn.dataset.layer);
@@ -737,12 +855,15 @@
       if (selectedIndex >= 0) {
         const [x, y, z] = xyzOf(selectedIndex);
         selectedInfo.textContent = `高さ${y + 1} ・ 横${x + 1} ・ 奥行${z + 1}`;
+        mobileControlsSummary.textContent = `高さ${y + 1}・横${x + 1}・奥行${z + 1}`;
         confirmMoveBtn.disabled = gameOver || currentPlayer !== HUMAN || board[selectedIndex] !== EMPTY;
       } else if (selectedLayer !== null) {
         selectedInfo.textContent = `高さ${selectedLayer + 1}：4×4から置く場所を選択`;
+        mobileControlsSummary.textContent = `高さ${selectedLayer + 1}を表示中`;
         confirmMoveBtn.disabled = true;
       } else {
         selectedInfo.textContent = '盤面をタップ、または高さを選択';
+        mobileControlsSummary.textContent = 'キューブをタップ';
         confirmMoveBtn.disabled = true;
       }
     }
@@ -789,6 +910,8 @@
       if (selectedLayer === null) selectedLayer = layerOf(index);
       ghost.position.copy(worldPos(index));
       ghost.visible = true;
+      setHudCollapsed(true);
+      setMobileControlsCollapsed(false);
       updateLayerButtonState();
       updateBoardFocus();
       renderPositionGrid();
@@ -799,6 +922,7 @@
       selectedIndex = -1;
       ghost.visible = false;
       renderPositionGrid();
+      setMobileControlsCollapsed(true);
     }
 
     function setLayer(layer) {
@@ -821,6 +945,7 @@
       controls.target.set(0, 0, 0);
       controls.update();
       for (const btn of viewButtons) btn.classList.toggle('active', btn.dataset.view === name);
+      if (selectedIndex < 0) setMobileControlsCollapsed(true);
     }
 
     function findWinningLine(player, lastMove = null) {
@@ -1224,6 +1349,10 @@
     function humanMove(index) {
       if (gameOver || currentPlayer !== HUMAN || board[index] !== EMPTY) return;
       placeMove(index, HUMAN);
+      if (touchUI) {
+        setHudCollapsed(true);
+        setMobileControlsCollapsed(true);
+      }
       if (!gameOver) cpuTurn();
     }
 
@@ -1245,6 +1374,8 @@
       }
       setStatus('あなたの番です', '#111827');
       if (touchUI) {
+        setHudCollapsed(false);
+        setMobileControlsCollapsed(true);
         updateLayerButtonState();
         updateBoardFocus();
         renderPositionGrid();
@@ -1325,6 +1456,14 @@
     });
 
     if (touchUI) {
+      hudToggleBtn.addEventListener('click', () => {
+        setHudCollapsed(!hud.classList.contains('is-collapsed'));
+      });
+
+      mobileControlsToggleBtn.addEventListener('click', () => {
+        setMobileControlsCollapsed(!mobileControls.classList.contains('is-collapsed'));
+      });
+
       for (const btn of layerButtons) {
         btn.addEventListener('click', () => {
           const layer = btn.dataset.layer === 'all' ? null : Number(btn.dataset.layer);
@@ -1346,6 +1485,8 @@
       });
 
       cancelSelectionBtn.addEventListener('click', clearSelection);
+      setHudCollapsed(false);
+      setMobileControlsCollapsed(true);
       updateLayerButtonState();
       updateBoardFocus();
       renderPositionGrid();
