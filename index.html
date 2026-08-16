@@ -509,9 +509,13 @@
     }
 
     const blackMaterial = new THREE.MeshStandardMaterial({
-      color: 0x090b10,
+      // Keep the piece black, but give it a cool reflected edge on touch
+      // screens so it does not disappear into the dark background.
+      color: touchUI ? 0x101827 : 0x090b10,
       metalness: 0.45,
-      roughness: 0.25
+      roughness: 0.25,
+      emissive: touchUI ? 0x0b3048 : 0x000000,
+      emissiveIntensity: touchUI ? 0.58 : 0
     });
     const whiteMaterial = new THREE.MeshStandardMaterial({
       color: 0xf6f8ff,
@@ -522,10 +526,29 @@
     const piecesGroup = new THREE.Group();
     scene.add(piecesGroup);
 
-    const ghost = new THREE.Mesh(
+    const ghost = new THREE.Group();
+    const ghostCore = new THREE.Mesh(
       new THREE.SphereGeometry(BALL_RADIUS * 1.03, 24, 16),
-      new THREE.MeshStandardMaterial({ color: 0x12151c, transparent: true, opacity: 0.44, roughness: 0.35 })
+      new THREE.MeshStandardMaterial({
+        color: touchUI ? 0x111a2a : 0x12151c,
+        emissive: touchUI ? 0x1683b1 : 0x000000,
+        emissiveIntensity: touchUI ? 1.15 : 0,
+        transparent: true,
+        opacity: touchUI ? 0.86 : 0.44,
+        roughness: 0.35
+      })
     );
+    const ghostOutline = new THREE.Mesh(
+      new THREE.SphereGeometry(BALL_RADIUS * 1.2, 20, 14),
+      new THREE.MeshBasicMaterial({
+        color: 0x8cecff,
+        transparent: true,
+        opacity: touchUI ? 0.82 : 0,
+        wireframe: true,
+        depthWrite: false
+      })
+    );
+    ghost.add(ghostCore, ghostOutline);
     ghost.visible = false;
     scene.add(ghost);
 
