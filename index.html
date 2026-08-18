@@ -118,11 +118,15 @@
       display: flex;
       align-items: center;
       gap: 9px;
+      min-width: 0;
+      white-space: nowrap;
       padding: 9px 10px;
       border-radius: 12px;
       color: var(--muted);
       background: rgba(255,255,255,0.028);
     }
+
+    .player > span:last-child { white-space: nowrap; }
 
     .piece-icon {
       width: 18px;
@@ -272,6 +276,22 @@
 
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+    body.victory-flash::after {
+      content: "";
+      position: fixed;
+      z-index: 12;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 48%, rgba(255,255,255,.17), transparent 56%);
+      animation: victory-flash 680ms ease-out both;
+    }
+
+    @keyframes victory-flash {
+      0% { opacity: 0; }
+      18% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
     /* Touch devices of any size, including iPad, can collapse the HUD. */
     .touch-ui .hud {
       transition: width 160ms ease, padding 160ms ease, background 160ms ease;
@@ -346,8 +366,8 @@
       </div>
       <div id="hudDetails">
         <div class="score">
-          <div class="player"><span id="humanPieceIcon" class="piece-icon black"></span><span id="humanPieceLabel">あなた（黒・先手）</span></div>
-          <div class="player"><span id="cpuPieceIcon" class="piece-icon white"></span><span id="cpuPieceLabel">CPU（白・後手）</span></div>
+          <div class="player"><span id="humanPieceIcon" class="piece-icon black"></span><span id="humanPieceLabel">あなた（黒）</span></div>
+          <div class="player"><span id="cpuPieceIcon" class="piece-icon white"></span><span id="cpuPieceLabel">CPU（白）</span></div>
         </div>
         <div class="difficulty-row">
           <label for="playerOrderSelect">あなたの順番</label>
@@ -580,6 +600,7 @@
     let currentPlayer = HUMAN;
     let cpuTimer = null;
     let toastTimer = null;
+    let winAnimation = null;
     let playerGoesFirst = localStorage.getItem('3d-four-player-order') !== 'second';
     let difficulty = localStorage.getItem('3d-four-difficulty') || 'normal';
     if (!['easy', 'normal', 'hard', 'strongest'].includes(difficulty)) difficulty = 'normal';
@@ -669,8 +690,8 @@
       playerOrderSelect.value = playerGoesFirst ? 'first' : 'second';
       humanPieceIcon.className = `piece-icon ${playerGoesFirst ? 'black' : 'white'}`;
       cpuPieceIcon.className = `piece-icon ${playerGoesFirst ? 'white' : 'black'}`;
-      humanPieceLabel.textContent = playerGoesFirst ? 'あなた（黒・先手）' : 'あなた（白・後手）';
-      cpuPieceLabel.textContent = playerGoesFirst ? 'CPU（白・後手）' : 'CPU（黒・先手）';
+      humanPieceLabel.textContent = playerGoesFirst ? 'あなた（黒）' : 'あなた（白）';
+      cpuPieceLabel.textContent = playerGoesFirst ? 'CPU（白）' : 'CPU（黒）';
       updateGhostAppearance();
     }
 
@@ -720,12 +741,17 @@
       if (navigator.vibrate) navigator.vibrate(12);
     }
 
-    function findWinningLine(player, lastMove = null) {
+    function findWinningLines(player, lastMove = null) {
       const candidates = lastMove == null ? winningLines : linesByCell[lastMove].map(i => winningLines[i]);
+      const matches = [];
       for (const line of candidates) {
-        if (line.every(i => board[i] === player)) return line;
+        if (line.every(i => board[i] === player)) matches.push(line);
       }
-      return null;
+      return matches;
+    }
+
+    function findWinningLine(player, lastMove = null) {
+      return findWinningLines(player, lastMove)[0] || null;
     }
 
     function boardFull() {
@@ -781,13 +807,12 @@
       addPiece(index, player, true);
       ghost.visible = false;
 
-      const line = findWinningLine(player, index);
-      if (line) {
+      const lines = findWinningLines(player, index);
+      if (lines.length) {
         gameOver = true;
         currentPlayer = EMPTY;
-        highlightWin(line, player);
-        setTurnStatus(player, player === HUMAN ? 'あなたの勝ち！' : 'CPUの勝ち');
-        showToast(player === HUMAN ? 'WIN! 4つ並びました' : 'CPUが4つ並べました');
+        highlightWin(lines, player);
+        setTurnStatus(player, player === HUMAN ? 'あなたの勝ち' : 'CPUの勝ち');
         if (touchUI) updateConfirmButton();
         return true;
       }
@@ -803,32 +828,208 @@
       return true;
     }
 
-    function highlightWin(line, player) {
+    function highlightWin(lines, player) {
       winGroup.clear();
-      const p1 = worldPos(line[0]);
-      const p2 = worldPos(line[line.length - 1]);
-      const center = p1.clone().add(p2).multiplyScalar(0.5);
-      const length = p1.distanceTo(p2) + 0.5;
+      const color = player === HUMAN ? 0x65d2ff : 0xffd866;
+      const lineCells = new Set(lines.flat());
+      const segments = [];
+      const halos = [];
+      const tracers = [];
+      const winningPieces = [];
+      const particleStarts = [];
+      const particleVelocities = [];
 
-      const material = new THREE.MeshBasicMaterial({
-        color: player === HUMAN ? 0x65d2ff : 0xffd866,
-        transparent: true,
-        opacity: 0.68,
-        depthWrite: false
-      });
-      const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, length, 16), material);
-      cylinder.position.copy(center);
-      cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p2.clone().sub(p1).normalize());
-      winGroup.add(cylinder);
-
-      for (const index of line) {
-        const ring = new THREE.Mesh(
-          new THREE.SphereGeometry(BALL_RADIUS * 1.18, 24, 16),
-          new THREE.MeshBasicMaterial({ color: material.color, transparent: true, opacity: 0.24, wireframe: true })
-        );
-        ring.position.copy(worldPos(index));
-        winGroup.add(ring);
+      for (let i = 0; i < CELL_COUNT; i++) {
+        const piece = pieceMeshes[i];
+        if (!piece) continue;
+        piece.material.transparent = true;
+        piece.material.opacity = lineCells.has(i) ? 1 : 0.2;
+        piece.material.depthWrite = lineCells.has(i);
+        if (lineCells.has(i)) {
+          piece.material.emissive.setHex(color);
+          piece.material.emissiveIntensity = playerIsBlack(player) ? 0.5 : 0.18;
+          winningPieces.push(piece);
+        }
       }
+
+      lines.forEach((line, lineIndex) => {
+        const points = line.map(worldPos);
+        for (let i = 0; i < points.length - 1; i++) {
+          const from = points[i];
+          const to = points[i + 1];
+          const direction = to.clone().sub(from);
+          const segment = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.075, 0.075, direction.length() + 0.12, 16),
+            new THREE.MeshBasicMaterial({
+              color,
+              transparent: true,
+              opacity: 0,
+              depthWrite: false,
+              blending: THREE.AdditiveBlending
+            })
+          );
+          segment.position.copy(from).add(to).multiplyScalar(0.5);
+          segment.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+          segment.scale.y = 0.01;
+          segment.userData.delay = lineIndex * 90 + i * 150;
+          winGroup.add(segment);
+          segments.push(segment);
+        }
+
+        points.forEach((point, pointIndex) => {
+          const halo = new THREE.Mesh(
+            new THREE.SphereGeometry(BALL_RADIUS * 1.14, 28, 18),
+            new THREE.MeshBasicMaterial({
+              color,
+              transparent: true,
+              opacity: 0,
+              wireframe: true,
+              depthWrite: false,
+              blending: THREE.AdditiveBlending
+            })
+          );
+          halo.position.copy(point);
+          halo.scale.setScalar(0.45);
+          halo.userData.delay = lineIndex * 90 + pointIndex * 150;
+          winGroup.add(halo);
+          halos.push(halo);
+        });
+
+        const tracer = new THREE.Mesh(
+          new THREE.SphereGeometry(0.14, 18, 12),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        tracer.position.copy(points[0]);
+        tracer.userData.points = points;
+        tracer.userData.delay = lineIndex * 120;
+        winGroup.add(tracer);
+        tracers.push(tracer);
+
+        for (let i = 0; i < 28; i++) {
+          const start = points[i % points.length].clone();
+          const velocity = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5)
+            .normalize()
+            .multiplyScalar(0.0012 + Math.random() * 0.0018);
+          particleStarts.push(start);
+          particleVelocities.push(velocity);
+        }
+      });
+
+      const particlePositions = new Float32Array(particleStarts.length * 3);
+      particleStarts.forEach((point, i) => point.toArray(particlePositions, i * 3));
+      const particleGeometry = new THREE.BufferGeometry();
+      particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      const particles = new THREE.Points(
+        particleGeometry,
+        new THREE.PointsMaterial({
+          color,
+          size: 0.11,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          sizeAttenuation: true
+        })
+      );
+      winGroup.add(particles);
+
+      // Keep the user's current orbit pivot. The winning-line framing may
+      // change the camera position, but it must not move the point the board
+      // rotates around.
+      const rotationCenter = controls.target.clone();
+      let cameraOffset = camera.position.clone().sub(controls.target);
+      const primaryDirection = worldPos(lines[0][lines[0].length - 1]).sub(worldPos(lines[0][0])).normalize();
+      // A winning line seen end-on looks like one ball. If the current view is
+      // too close to that angle, orbit to a clear three-quarter view so the
+      // route itself stays readable.
+      if (Math.abs(cameraOffset.clone().normalize().dot(primaryDirection)) > 0.72) {
+        let side = primaryDirection.clone().cross(new THREE.Vector3(0, 1, 0));
+        if (side.lengthSq() < 0.05) side = primaryDirection.clone().cross(new THREE.Vector3(1, 0, 0));
+        side.normalize();
+        cameraOffset = side.add(new THREE.Vector3(0, 0.48, 0)).normalize().multiplyScalar(cameraOffset.length());
+      }
+      const narrowScreenDistance = camera.aspect < 0.82 ? 1 + (0.82 - camera.aspect) * 2 : 1;
+      const cameraDistance = Math.max(8.2, cameraOffset.length() * 0.86) * narrowScreenDistance;
+      winAnimation = {
+        start: performance.now(),
+        segments,
+        halos,
+        tracers,
+        winningPieces,
+        particles,
+        particleStarts,
+        particleVelocities,
+        cameraStart: camera.position.clone(),
+        cameraEnd: rotationCenter.clone().add(cameraOffset.normalize().multiplyScalar(cameraDistance)),
+        targetStart: rotationCenter.clone(),
+        targetEnd: rotationCenter.clone()
+      };
+      controls.enabled = false;
+      document.body.classList.remove('victory-flash');
+      void document.body.offsetWidth;
+      document.body.classList.add('victory-flash');
+      setTimeout(() => document.body.classList.remove('victory-flash'), 720);
+      if (navigator.vibrate && player === HUMAN) navigator.vibrate([35, 45, 70]);
+    }
+
+    function updateWinAnimation(now) {
+      if (!winAnimation) return;
+      const elapsed = now - winAnimation.start;
+      const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+      for (const segment of winAnimation.segments) {
+        const t = Math.max(0, Math.min(1, (elapsed - segment.userData.delay) / 360));
+        segment.scale.y = Math.max(0.01, easeOut(t));
+        segment.material.opacity = t * 0.82;
+      }
+
+      for (const halo of winAnimation.halos) {
+        const t = Math.max(0, Math.min(1, (elapsed - halo.userData.delay) / 420));
+        const settle = 1 + Math.sin(now * 0.005 + halo.userData.delay) * 0.035;
+        halo.scale.setScalar((0.45 + easeOut(t) * 0.55) * settle);
+        halo.material.opacity = t * (0.2 + Math.sin(now * 0.004 + halo.userData.delay) * 0.06);
+      }
+
+      for (const tracer of winAnimation.tracers) {
+        const t = Math.max(0, Math.min(1, (elapsed - 80 - tracer.userData.delay) / 720));
+        const path = tracer.userData.points;
+        const pathPosition = t * (path.length - 1);
+        const segmentIndex = Math.min(path.length - 2, Math.floor(pathPosition));
+        tracer.position.lerpVectors(path[segmentIndex], path[segmentIndex + 1], pathPosition - segmentIndex);
+        tracer.material.opacity = t > 0 && t < 1 ? Math.sin(t * Math.PI) : 0;
+        tracer.scale.setScalar(1 + Math.sin(t * Math.PI) * 1.15);
+      }
+
+      const burstAge = elapsed - 430;
+      if (burstAge >= 0 && burstAge < 980) {
+        const positions = winAnimation.particles.geometry.attributes.position.array;
+        winAnimation.particleStarts.forEach((start, i) => {
+          const point = start.clone().addScaledVector(winAnimation.particleVelocities[i], burstAge);
+          point.toArray(positions, i * 3);
+        });
+        winAnimation.particles.geometry.attributes.position.needsUpdate = true;
+        winAnimation.particles.material.opacity = Math.sin(Math.min(1, burstAge / 980) * Math.PI) * 0.9;
+      } else {
+        winAnimation.particles.material.opacity = 0;
+      }
+
+      // Own the camera only while the victory move is in progress. Once it
+      // reaches the composed view, stop writing to it entirely so OrbitControls
+      // can rotate and zoom freely while the board remains on screen.
+      if (elapsed <= 950) {
+        const cameraT = Math.max(0, elapsed / 950);
+        const cameraEase = easeOut(cameraT);
+        camera.position.lerpVectors(winAnimation.cameraStart, winAnimation.cameraEnd, cameraEase);
+        controls.target.lerpVectors(winAnimation.targetStart, winAnimation.targetEnd, cameraEase);
+      } else if (!controls.enabled) {
+        camera.position.copy(winAnimation.cameraEnd);
+        controls.target.copy(winAnimation.targetEnd);
+        controls.enabled = true;
+        controls.update();
+      }
+
+      const piecePulse = 1 + Math.sin(now * 0.006) * 0.035;
+      for (const piece of winAnimation.winningPieces) piece.scale.setScalar(piecePulse);
     }
 
     function isImmediateWin(index, player) {
@@ -1281,6 +1482,8 @@
     function restart() {
       clearTimeout(cpuTimer);
       gameOver = false;
+      winAnimation = null;
+      controls.enabled = true;
       currentPlayer = playerGoesFirst ? HUMAN : CPU;
       hoveredIndex = -1;
       selectedIndex = -1;
@@ -1288,6 +1491,7 @@
       board.fill(EMPTY);
       piecesGroup.clear();
       winGroup.clear();
+      document.body.classList.remove('victory-flash');
       ghost.visible = false;
       for (let i = 0; i < CELL_COUNT; i++) {
         pieceMeshes[i] = null;
@@ -1416,12 +1620,7 @@
     function animate() {
       requestAnimationFrame(animate);
       controls.update();
-
-      // Gentle pulse for the winning line.
-      if (gameOver && winGroup.children.length) {
-        const pulse = 1 + Math.sin(performance.now() * 0.0045) * 0.035;
-        winGroup.scale.setScalar(pulse);
-      }
+      updateWinAnimation(performance.now());
       renderer.render(scene, camera);
     }
 
